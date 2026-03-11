@@ -42,3 +42,11 @@ try:
     from server.conf.secret_settings import *
 except ImportError:
     print("secret_settings.py file not found or failed to import.")
+import os
+import dj_database_url
+
+# 只要侦测到 Railway 注入了 DATABASE_URL，直接丢弃本地 SQLite，连外挂库
+if "DATABASE_URL" in os.environ:
+DATABASES = {
+"default": dj_database_url.config(conn_max_age=600, ssl_require=False)
+}
