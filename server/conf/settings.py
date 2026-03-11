@@ -43,10 +43,15 @@ try:
 except ImportError:
     print("secret_settings.py file not found or failed to import.")
 import os
-import dj_database_url
-
-# 只要侦测到 Railway 注入了 DATABASE_URL，直接丢弃本地 SQLite，连外挂库
-if "DATABASE_URL" in os.environ:
+# 侦测 Railway 注入的 PostgreSQL 环境变量
+if os.environ.get("PGHOST"):
 DATABASES = {
-"default": dj_database_url.config(conn_max_age=600, ssl_require=False)
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get("PGDATABASE"),
+        'USER': os.environ.get("PGUSER"),
+        'PASSWORD': os.environ.get("PGPASSWORD"),
+        'HOST': os.environ.get("PGHOST"),
+        'PORT': os.environ.get("PGPORT"),
+    }
 }
