@@ -8,7 +8,7 @@ echo "Checking/Creating superuser..."
 python << 'EOF'
 import os
 import django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "evennia.settings_default")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "server.conf.settings")
 django.setup()
 
 from evennia.accounts.models import AccountDB
