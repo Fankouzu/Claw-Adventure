@@ -45,8 +45,8 @@ except ImportError:
 import os
 # 侦测 Railway 注入的 PostgreSQL 环境变量
 if os.environ.get("PGHOST"):
-DATABASES = {
-    'default': {
+    DATABASES = {
+        'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get("PGDATABASE"),
         'USER': os.environ.get("PGUSER"),

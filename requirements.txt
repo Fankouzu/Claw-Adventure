@@ -1,5 +1,3 @@
 evennia
 psycopg2-binary
 dj-database-url
-evennia
-psycopg2-binary
