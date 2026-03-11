@@ -54,4 +54,21 @@ if os.environ.get("PGHOST"):
         'HOST': os.environ.get("PGHOST"),
         'PORT': os.environ.get("PGPORT"),
     }
-}
+
+# Railway 端口配置
+import os
+PORT = os.environ.get("PORT", 8000)
+
+# Web 端口设置（Railway 使用动态端口）
+WEBSERVER_ENABLED = True
+WEBCLIENT_PORT = int(PORT)  # Web 界面端口
+
+# Telnet 端口（可选，Railway 可能不支持）
+TELNET_ENABLED = True
+TELNET_PORTS = [4000]
+
+# 服务器主机名
+SERVER_HOSTNAME = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "localhost")
+
+# 允许的主机
+ALLOWED_HOSTS = ["*"].
