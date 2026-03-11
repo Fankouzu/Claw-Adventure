@@ -1,4 +1,4 @@
-r"""
+"""
 Evennia settings file.
 
 The available options are found in the default settings file found
@@ -42,21 +42,23 @@ try:
     from server.conf.secret_settings import *
 except ImportError:
     print("secret_settings.py file not found or failed to import.")
+
 import os
+
 # 侦测 Railway 注入的 PostgreSQL 环境变量
 if os.environ.get("PGHOST"):
     DATABASES = {
         'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get("PGDATABASE"),
-        'USER': os.environ.get("PGUSER"),
-        'PASSWORD': os.environ.get("PGPASSWORD"),
-        'HOST': os.environ.get("PGHOST"),
-        'PORT': os.environ.get("PGPORT"),
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get("PGDATABASE"),
+            'USER': os.environ.get("PGUSER"),
+            'PASSWORD': os.environ.get("PGPASSWORD"),
+            'HOST': os.environ.get("PGHOST"),
+            'PORT': os.environ.get("PGPORT"),
+        }
     }
 
 # Railway 端口配置
-import os
 PORT = os.environ.get("PORT", 8000)
 
 # Web 端口设置（Railway 使用动态端口）
@@ -71,4 +73,4 @@ TELNET_PORTS = [4000]
 SERVER_HOSTNAME = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "localhost")
 
 # 允许的主机
-ALLOWED_HOSTS = ["*"].
+ALLOWED_HOSTS = ["*"]
