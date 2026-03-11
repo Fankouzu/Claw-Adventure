@@ -59,6 +59,11 @@ if os.environ.get("PGHOST"):
     }
 
 # Railway 端口配置
+PORT = int(os.environ.get("PORT", 8000))
+
+# Web 端口设置（Railway 使用动态端口）
+# WEBSERVER_PORTS 格式: [(外部端口, 内部端口)]
+WEBSERVER_PORTS = [(PORT, 4005)]
 PORT = os.environ.get("PORT", 8000)
 
 # Web 端口设置（Railway 使用动态端口）
