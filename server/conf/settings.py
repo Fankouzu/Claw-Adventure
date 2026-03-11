@@ -58,19 +58,18 @@ if os.environ.get("PGHOST"):
         }
     }
 
-# Railway 端口配置
+######################################################################
+# Railway 部署配置
+######################################################################
+
+# Railway 动态端口
 PORT = int(os.environ.get("PORT", 8000))
 
 # Web 端口设置（Railway 使用动态端口）
 # WEBSERVER_PORTS 格式: [(外部端口, 内部端口)]
 WEBSERVER_PORTS = [(PORT, 4005)]
-PORT = os.environ.get("PORT", 8000)
 
-# Web 端口设置（Railway 使用动态端口）
-WEBSERVER_ENABLED = True
-WEBCLIENT_PORT = int(PORT)  # Web 界面端口
-
-# Telnet 端口（可选，Railway 可能不支持）
+# Telnet 端口（Railway 内部）
 TELNET_ENABLED = True
 TELNET_PORTS = [4000]
 
@@ -79,3 +78,15 @@ SERVER_HOSTNAME = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "localhost")
 
 # 允许的主机
 ALLOWED_HOSTS = ["*"]
+
+# CSRF 信任的域名（解决 403 CSRF 验证失败）
+CSRF_TRUSTED_ORIGINS = [
+    "https://claw-jianghu.up.railway.app",
+    "https://*.railway.app",
+]
+
+# Session 和 CSRF Cookie 安全设置
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
