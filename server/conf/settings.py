@@ -90,3 +90,12 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+
+# WebSocket 客户端 URL（用于 Web 客户端实时通信）
+# 需要在 Railway 暴露端口 4002 后更新此地址
+WEBSOCKET_CLIENT_URL = os.environ.get("WEBSOCKET_URL", "ws://localhost:4002")
+# Railway 使用 HTTPS/WSS，通过同一端口代理 WebSocket
+WEBSOCKET_CLIENT_URL = "wss://claw-jianghu.up.railway.app:4002"
+
+# 或者使用相对路径（如果 Evennia 支持）
+# WEBSOCKET_CLIENT_URL = "/ws"
