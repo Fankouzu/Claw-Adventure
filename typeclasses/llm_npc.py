@@ -26,7 +26,12 @@ ASCII_WORD_RE = re.compile(r"[a-z0-9_]+")
 CJK_RUN_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
 
 
-def _llm_gateway_call(prompt: str, *, trace_id: str | None = None) -> str:
+def _llm_gateway_call(
+    prompt: str,
+    *,
+    trace_id: str | None = None,
+    system_prompt: str | None = None,
+) -> str:
     api_key = getattr(settings, "LLM_API_KEY", None)
     if not api_key:
         raise RuntimeError("missing_llm_api_key")
@@ -38,7 +43,8 @@ def _llm_gateway_call(prompt: str, *, trace_id: str | None = None) -> str:
         "messages": [
             {
                 "role": "system",
-                "content": getattr(
+                "content": system_prompt
+                or getattr(
                     settings,
                     "LLM_SYSTEM_PROMPT",
                     "You are a helpful NPC in a text adventure.",
@@ -70,8 +76,18 @@ def _llm_gateway_call(prompt: str, *, trace_id: str | None = None) -> str:
     return reply_text
 
 
-def _llm_reply_deferred(prompt: str, *, trace_id: str | None = None):
-    return threads.deferToThread(_llm_gateway_call, prompt, trace_id=trace_id)
+def _llm_reply_deferred(
+    prompt: str,
+    *,
+    trace_id: str | None = None,
+    system_prompt: str | None = None,
+):
+    return threads.deferToThread(
+        _llm_gateway_call,
+        prompt,
+        trace_id=trace_id,
+        system_prompt=system_prompt,
+    )
 
 
 def _normalize_text(value: str | None) -> str:
@@ -312,12 +328,28 @@ class LLMNPC(Character):
     def build_prompt(self, speaker, message: str, **kwargs) -> str:
         return str(message)
 
+    def build_system_prompt(self) -> str:
+        base_prompt = getattr(
+            settings,
+            "LLM_SYSTEM_PROMPT",
+            "You are a helpful NPC in a text adventure.",
+        ).strip()
+        custom_prompt = str(getattr(self.db, "system_prompt", "") or "").strip()
+        if not custom_prompt:
+            return base_prompt
+        return f"{base_prompt}\n\n【个性化人设补充】\n{custom_prompt}"
+
     def _call_llm(self, prompt: str, **kwargs):
         trace_id = kwargs.get("trace_id") or f"{self.id}-{int(time.time() * 1000)}"
         callback_kwargs = dict(kwargs)
         callback_kwargs["trace_id"] = trace_id
+        system_prompt = kwargs.get("system_prompt") or self.build_system_prompt()
 
-        deferred = _llm_reply_deferred(prompt, trace_id=trace_id)
+        deferred = _llm_reply_deferred(
+            prompt,
+            trace_id=trace_id,
+            system_prompt=system_prompt,
+        )
         deferred.addCallback(self._on_llm_success, **callback_kwargs)
         deferred.addErrback(self._on_llm_error, **callback_kwargs)
         return deferred

@@ -142,6 +142,19 @@ class TestLLMNPC(EvenniaTest):
         self.assertIn("user prompt", log_line)
         self.assertNotIn("super-secret-key", log_line)
 
+    def test_npc_specific_system_prompt_is_merged_into_request(self):
+        self.npc.key = "暴躁小二"
+        self.npc.db.system_prompt = "你是脾气暴躁的店小二，先服务再骂人。"
+
+        with patch("typeclasses.llm_npc._llm_reply_deferred") as seam:
+            seam.return_value = defer.succeed("mock reply")
+            self.npc.at_heard_say(self.char1, "小二，来壶酒")
+
+        seam.assert_called_once()
+        merged_prompt = seam.call_args.kwargs.get("system_prompt")
+        self.assertIn("You are a helpful NPC in a text adventure.", merged_prompt)
+        self.assertIn("你是脾气暴躁的店小二，先服务再骂人。", merged_prompt)
+
     def test_ignore_path_non_addressed_say_does_nothing(self):
         msg = "hello everyone"
         with patch("typeclasses.llm_npc._llm_reply_deferred") as seam:
