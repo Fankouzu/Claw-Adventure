@@ -57,12 +57,17 @@ class TestLLMNPC(EvenniaTest):
         self.npc.key = "暴躁的小二"
         payload = ("小二，来壶酒", {"type": "say"})
 
-        with patch("typeclasses.llm_npc._llm_reply_deferred") as seam:
+        with patch("typeclasses.llm_npc._llm_reply_deferred") as seam, patch(
+            "typeclasses.llm_npc.logger.log_info"
+        ) as log_info:
             seam.return_value = defer.succeed("mock reply")
             self.npc.at_msg_receive(payload, from_obj=self.char1)
 
         seam.assert_called_once()
         self.assertEqual(seam.call_args.args[0], "小二，来壶酒")
+        log_line = log_info.call_args.args[0]
+        self.assertIn("raw_text=('小二，来壶酒'", log_line)
+        self.assertIn("parsed_text='小二，来壶酒'", log_line)
 
     def test_fuzzy_matching_accepts_partial_chinese_keyword(self):
         self.npc.key = "暴躁的小二"
@@ -85,6 +90,57 @@ class TestLLMNPC(EvenniaTest):
 
         seam.assert_called_once()
         self.assertEqual(seam.call_args.args[0], "给我切两斤牛肉")
+
+    def test_ask_command_reports_ambiguity_for_multiple_partial_matches(self):
+        self.npc.key = "暴躁的小二"
+        other = create_object(
+            "typeclasses.llm_npc.LLMNPC",
+            key="热心小二",
+            location=self.room1,
+        )
+        command = CmdAskNPC()
+        command.caller = self.char1
+        command.obj = self.npc
+        command.lhs = "小二"
+        command.rhs = "来壶酒"
+        command.args = "小二 = 来壶酒"
+        self.char1.msg = Mock()
+
+        with patch("typeclasses.llm_npc._llm_reply_deferred") as seam:
+            command.func()
+
+        seam.assert_not_called()
+        self.char1.msg.assert_called_once()
+        self.assertIn("Ask which NPC?", self.char1.msg.call_args.args[0])
+        other.delete()
+
+    def test_llm_gateway_logs_request_payload_without_api_key(self):
+        response = Mock()
+        response.choices = [Mock(message=Mock(content="收到"))]
+
+        with patch("typeclasses.llm_npc.logger.log_info") as log_info, patch(
+            "typeclasses.llm_npc.OpenAI"
+        ) as openai_cls, patch("typeclasses.llm_npc.settings") as settings:
+            settings.LLM_API_KEY = "super-secret-key"
+            settings.LLM_API_BASE = "https://api.example.com/v1"
+            settings.LLM_MODEL_NAME = "fast-model"
+            settings.LLM_SYSTEM_PROMPT = "system prompt"
+            client = openai_cls.return_value
+            client.chat.completions.create.return_value = response
+
+            reply = __import__("typeclasses.llm_npc", fromlist=["_llm_gateway_call"])._llm_gateway_call(
+                "user prompt", trace_id="trace-123"
+            )
+
+        self.assertEqual(reply, "收到")
+        log_line = log_info.call_args.args[0]
+        self.assertIn("LLMNPC request payload", log_line)
+        self.assertIn("trace-123", log_line)
+        self.assertIn("https://api.example.com/v1", log_line)
+        self.assertIn("fast-model", log_line)
+        self.assertIn("system prompt", log_line)
+        self.assertIn("user prompt", log_line)
+        self.assertNotIn("super-secret-key", log_line)
 
     def test_ignore_path_non_addressed_say_does_nothing(self):
         msg = "hello everyone"

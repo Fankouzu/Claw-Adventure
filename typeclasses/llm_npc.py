@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import re
 import time
@@ -26,19 +27,15 @@ CJK_RUN_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
 
 
 def _llm_gateway_call(prompt: str, *, trace_id: str | None = None) -> str:
-    del trace_id
-
     api_key = getattr(settings, "LLM_API_KEY", None)
     if not api_key:
         raise RuntimeError("missing_llm_api_key")
 
-    client = OpenAI(
-        api_key=api_key,
-        base_url=getattr(settings, "LLM_API_BASE", None) or None,
-    )
-    response = client.chat.completions.create(
-        model=getattr(settings, "LLM_MODEL_NAME", "gpt-4o-mini"),
-        messages=[
+    request_payload = {
+        "trace_id": trace_id,
+        "base_url": getattr(settings, "LLM_API_BASE", None) or None,
+        "model": getattr(settings, "LLM_MODEL_NAME", "gpt-4o-mini"),
+        "messages": [
             {
                 "role": "system",
                 "content": getattr(
@@ -49,7 +46,20 @@ def _llm_gateway_call(prompt: str, *, trace_id: str | None = None) -> str:
             },
             {"role": "user", "content": prompt},
         ],
-        timeout=LLM_TIMEOUT_SECONDS,
+        "timeout": LLM_TIMEOUT_SECONDS,
+    }
+    logger.log_info(
+        f"LLMNPC request payload {json.dumps(request_payload, ensure_ascii=False, sort_keys=True)}"
+    )
+
+    client = OpenAI(
+        api_key=api_key,
+        base_url=request_payload["base_url"],
+    )
+    response = client.chat.completions.create(
+        model=request_payload["model"],
+        messages=request_payload["messages"],
+        timeout=request_payload["timeout"],
     )
 
     reply_text = ""
@@ -203,10 +213,12 @@ class LLMNPC(Character):
         self.locks.add("call:all()")
 
     def at_msg_receive(self, text=None, from_obj=None, **kwargs):
-        logger.log_info(
-            f"LLMNPC at_msg_receive key={self.key!r} raw_text={text!r} from_obj={from_obj!r} kwargs={kwargs!r}"
-        )
         message, payload = _extract_message_text(text)
+        logger.log_info(
+            "LLMNPC at_msg_receive "
+            f"key={self.key!r} raw_text={text!r} parsed_text={message!r} "
+            f"from_obj={from_obj!r} payload={payload!r} kwargs={kwargs!r}"
+        )
         merged_kwargs = dict(payload)
         merged_kwargs.update(kwargs)
         self.handle_player_input(from_obj, message, **merged_kwargs)
