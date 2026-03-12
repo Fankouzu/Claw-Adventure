@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from evennia.utils.create import create_object
 from typeclasses.llm_npc import CmdAskNPC
 from typeclasses.llm_npc import LLMNPC
+from typeclasses.llm_npc import _sanitize_reply_text
 from evennia.utils.test_resources import EvenniaTest
 from evennia.utils.utils import class_from_module
 from twisted.internet import defer
@@ -74,6 +75,20 @@ class TestLLMNPC(EvenniaTest):
 
         self.assertTrue(self.npc._is_explicitly_addressed("小二，给我切两斤牛肉"))
         self.assertFalse(self.npc._is_explicitly_addressed("掌柜的，出来一下"))
+
+    def test_sanitize_reply_text_cleans_nested_quotes_and_symbols(self):
+        raw = '  往地上啐了一口 "滚远点！" +++ uant*/  '
+
+        cleaned = _sanitize_reply_text(raw)
+
+        self.assertEqual(cleaned, '往地上啐了一口 "滚远点！"')
+
+    def test_sanitize_reply_text_keeps_normal_dialogue_intact(self):
+        raw = '*把酒壶往桌上一放* 客官，酒来了。'
+
+        cleaned = _sanitize_reply_text(raw)
+
+        self.assertEqual(cleaned, raw)
 
     def test_ask_command_forces_npc_interaction(self):
         self.npc.key = "暴躁的小二"
@@ -200,6 +215,15 @@ class TestLLMNPC(EvenniaTest):
         emitted_line = self.room1.msg_contents.call_args.args[0]
         self.assertEqual(emitted_line, 'LLMNPC says, "I lose my train of thought for a moment."')
         self.assertFalse(getattr(self.npc.ndb, "is_thinking", True))
+
+    def test_success_path_sanitizes_reply_before_emitting(self):
+        with patch("typeclasses.llm_npc._llm_reply_deferred") as seam:
+            seam.return_value = defer.succeed('往地上啐了一口 "滚远点！" +++ uant*/')
+
+            self.npc.at_heard_say(self.char1, "LLMNPC, hello")
+
+        emitted_line = self.room1.msg_contents.call_args.args[0]
+        self.assertEqual(emitted_line, 'LLMNPC says, "往地上啐了一口 "滚远点！""')
 
     def test_malformed_payload_non_string_does_not_crash_or_call_llm(self):
         class ExplodingBoolPayload:

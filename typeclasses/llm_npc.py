@@ -24,6 +24,8 @@ BUSY_TEMPLATE = "{npc_name} is thinking, please wait."
 TYPECLASS_PATHS = {"typeclasses.llm_npc.LLMNPC", "llm_npc.LLMNPC"}
 ASCII_WORD_RE = re.compile(r"[a-z0-9_]+")
 CJK_RUN_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
+CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+TRAILING_GARBAGE_RE = re.compile(r"(?:\s*[+]+\s*|\s+[A-Za-z_][A-Za-z0-9_./-]*[*/][A-Za-z0-9_*/.-]*\s*)+$")
 
 
 def _llm_gateway_call(
@@ -94,6 +96,18 @@ def _normalize_text(value: str | None) -> str:
     if value is None:
         return ""
     return unicodedata.normalize("NFKC", str(value)).strip().casefold()
+
+
+def _sanitize_reply_text(text: str) -> str:
+    cleaned = unicodedata.normalize("NFC", str(text or "")).strip()
+    cleaned = CONTROL_CHAR_RE.sub("", cleaned)
+    cleaned = cleaned.replace("“", '"').replace("”", '"')
+    cleaned = cleaned.replace("‘", "'").replace("’", "'")
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = re.sub(r'"{3,}', '"', cleaned)
+    cleaned = re.sub(r"'{3,}", "'", cleaned)
+    cleaned = TRAILING_GARBAGE_RE.sub("", cleaned).strip()
+    return cleaned
 
 
 def _extract_message_text(text: Any) -> tuple[str, dict[str, Any]]:
@@ -370,7 +384,7 @@ class LLMNPC(Character):
 
     def _on_llm_success(self, reply_text: str, **kwargs):
         self.ndb.is_thinking = False
-        cleaned = (reply_text or "").strip()
+        cleaned = _sanitize_reply_text(reply_text)
         if not cleaned:
             return self._on_llm_error(RuntimeError("empty_llm_reply"), **kwargs)
         self._emit_reply(cleaned)
