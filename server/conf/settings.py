@@ -64,14 +64,16 @@ if os.environ.get("PGHOST"):
 
 # Railway 动态端口
 PORT = int(os.environ.get("PORT", 8000))
+ON_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RAILWAY_PROJECT_ID"))
 
 # Web 端口设置（Railway 使用动态端口）
 # WEBSERVER_PORTS 格式: [(外部端口, 内部端口)]
 WEBSERVER_PORTS = [(PORT, 4005)]
 
-# Telnet 端口（Railway 内部）
-TELNET_ENABLED = True
-TELNET_PORTS = [4000]
+# Telnet 端口
+# Railway 运行时只需要 Web 入口；继续绑定 4000 会与平台分配端口冲突。
+TELNET_ENABLED = not ON_RAILWAY
+TELNET_PORTS = [] if ON_RAILWAY else [4000]
 
 # 服务器主机名
 SERVER_HOSTNAME = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "localhost")
