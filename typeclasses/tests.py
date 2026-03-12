@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import Mock, patch
 
 from evennia.utils.create import create_object
+from typeclasses.llm_npc import CmdAskNPC
 from typeclasses.llm_npc import LLMNPC
 from evennia.utils.test_resources import EvenniaTest
 from evennia.utils.utils import class_from_module
@@ -51,6 +52,39 @@ class TestLLMNPC(EvenniaTest):
         self.assertEqual(npc.key, "暴躁小二")
         self.assertEqual(npc.db_key, "暴躁小二")
         npc.delete()
+
+    def test_at_msg_receive_parses_tuple_say_payload(self):
+        self.npc.key = "暴躁的小二"
+        payload = ("小二，来壶酒", {"type": "say"})
+
+        with patch("typeclasses.llm_npc._llm_reply_deferred") as seam:
+            seam.return_value = defer.succeed("mock reply")
+            self.npc.at_msg_receive(payload, from_obj=self.char1)
+
+        seam.assert_called_once()
+        self.assertEqual(seam.call_args.args[0], "小二，来壶酒")
+
+    def test_fuzzy_matching_accepts_partial_chinese_keyword(self):
+        self.npc.key = "暴躁的小二"
+
+        self.assertTrue(self.npc._is_explicitly_addressed("小二，给我切两斤牛肉"))
+        self.assertFalse(self.npc._is_explicitly_addressed("掌柜的，出来一下"))
+
+    def test_ask_command_forces_npc_interaction(self):
+        self.npc.key = "暴躁的小二"
+        command = CmdAskNPC()
+        command.caller = self.char1
+        command.obj = self.npc
+        command.lhs = "小二"
+        command.rhs = "给我切两斤牛肉"
+        command.args = "小二 = 给我切两斤牛肉"
+
+        with patch("typeclasses.llm_npc._llm_reply_deferred") as seam:
+            seam.return_value = defer.succeed("mock reply")
+            command.func()
+
+        seam.assert_called_once()
+        self.assertEqual(seam.call_args.args[0], "给我切两斤牛肉")
 
     def test_ignore_path_non_addressed_say_does_nothing(self):
         msg = "hello everyone"
@@ -111,16 +145,13 @@ class TestLLMNPC(EvenniaTest):
         self.room1.msg_contents.assert_not_called()
         self.assertFalse(getattr(self.npc.ndb, "is_thinking", True))
 
-    def test_from_obj_none_and_speaker_none_addressed_message_still_works(self):
+    def test_from_obj_none_and_speaker_none_is_ignored(self):
         msg = "LLMNPC, status?"
         with patch("typeclasses.llm_npc._llm_reply_deferred") as seam:
-            seam.return_value = defer.succeed("ready")
             self.npc.at_heard_say(None, msg, from_obj=None)
 
-        seam.assert_called_once()
-        self.room1.msg_contents.assert_called_once()
-        emitted_line = self.room1.msg_contents.call_args.args[0]
-        self.assertEqual(emitted_line, 'LLMNPC says, "ready"')
+        seam.assert_not_called()
+        self.room1.msg_contents.assert_not_called()
         self.assertFalse(getattr(self.npc.ndb, "is_thinking", True))
 
     def test_sync_llm_setup_error_releases_lock_for_next_attempt(self):

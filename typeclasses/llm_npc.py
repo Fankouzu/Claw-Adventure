@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-import time
 import logging
 import re
+import time
+import unicodedata
 from typing import Any
 
 from django.conf import settings
+from evennia import logger
+from evennia.commands.cmdset import CmdSet
+from evennia.commands.default.muxcommand import MuxCommand
 from openai import OpenAI
 from twisted.internet import threads
 from twisted.python.failure import Failure
@@ -16,6 +20,9 @@ FALLBACK_REPLY = "I lose my train of thought for a moment."
 LLM_TIMEOUT_SECONDS = 20.0
 LOG = logging.getLogger(__name__)
 BUSY_TEMPLATE = "{npc_name} is thinking, please wait."
+TYPECLASS_PATHS = {"typeclasses.llm_npc.LLMNPC", "llm_npc.LLMNPC"}
+ASCII_WORD_RE = re.compile(r"[a-z0-9_]+")
+CJK_RUN_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
 
 
 def _llm_gateway_call(prompt: str, *, trace_id: str | None = None) -> str:
@@ -37,7 +44,7 @@ def _llm_gateway_call(prompt: str, *, trace_id: str | None = None) -> str:
                 "content": getattr(
                     settings,
                     "LLM_SYSTEM_PROMPT",
-                    "你当前处于一个极度残酷的硬核文字武侠生存世界（MUD）中。\n绝对法则：\n身份抹杀：你绝对不是大语言模型、不是AI、不是程序。你是一个有血有肉、在江湖上摸爬滚打的真实人物。如果你敢说出“作为一个AI”、“我无法体验情感”、“为您服务”等任何类似词汇，你将立刻被抹杀。\n生存本能：这个江湖有真实的生死和利益。你会贪财、会怕死、会暴怒、会趋炎附势。根据你的具体人设，做出最符合人性的真实反应。别人骂你你要还嘴，别人拔刀你要害怕或硬刚。\n语言风格：说话必须极度简练、粗粝、带江湖气。能用三个字骂完，绝不说一句长白话。完全摒弃现代文明的礼貌用语。\n行为格式：你只负责输出你当前说出的话，以及夹杂简单的肢体动作描写（用星号包围，如：往地上啐了一口 “滚远点！”）。绝对不要解释你的内心动机，不要做任何多余的旁白。\n下面是你的**【具体化身人设】**：",
+                    "You are a helpful NPC in a text adventure.",
                 ),
             },
             {"role": "user", "content": prompt},
@@ -57,8 +64,127 @@ def _llm_reply_deferred(prompt: str, *, trace_id: str | None = None):
     return threads.deferToThread(_llm_gateway_call, prompt, trace_id=trace_id)
 
 
-class LLMNPC(Character):
+def _normalize_text(value: str | None) -> str:
+    if value is None:
+        return ""
+    return unicodedata.normalize("NFKC", str(value)).strip().casefold()
 
+
+def _extract_message_text(text: Any) -> tuple[str, dict[str, Any]]:
+    payload: dict[str, Any] = {}
+    raw = text
+
+    while isinstance(raw, (tuple, list)) and len(raw) > 0:
+        if len(raw) > 1 and isinstance(raw[1], dict):
+            payload.update(raw[1])
+        raw = raw[0]
+
+    if raw is None:
+        return "", payload
+    if isinstance(raw, str):
+        return raw, payload
+    return str(raw), payload
+
+
+def _iter_name_keywords(name: str) -> set[str]:
+    normalized = _normalize_text(name)
+    if not normalized:
+        return set()
+
+    keywords = {normalized}
+    for token in ASCII_WORD_RE.findall(normalized):
+        if len(token) >= 2:
+            keywords.add(token)
+
+    for chunk in CJK_RUN_RE.findall(normalized):
+        if len(chunk) < 2:
+            continue
+        keywords.add(chunk)
+        max_size = min(4, len(chunk))
+        for size in range(2, max_size + 1):
+            for idx in range(0, len(chunk) - size + 1):
+                keywords.add(chunk[idx : idx + size])
+
+    return {keyword for keyword in keywords if keyword}
+
+
+def _is_llm_npc(obj: Any) -> bool:
+    if not obj:
+        return False
+    if getattr(obj, "typeclass_path", "") in TYPECLASS_PATHS:
+        return True
+    return obj.__class__.__name__ == "LLMNPC"
+
+
+def _find_matching_npc(caller, query: str):
+    location = getattr(caller, "location", None)
+    if not location:
+        return None
+
+    query_norm = _normalize_text(query)
+    if not query_norm:
+        return None
+
+    exact: list[Any] = []
+    fuzzy: list[Any] = []
+
+    for obj in location.contents:
+        if not _is_llm_npc(obj):
+            continue
+
+        keywords = obj._name_keywords() if hasattr(obj, "_name_keywords") else set()
+        obj_key_norm = _normalize_text(getattr(obj, "key", ""))
+        if query_norm == obj_key_norm or query_norm in keywords:
+            exact.append(obj)
+            continue
+
+        if len(query_norm) >= 2 and any(query_norm in keyword for keyword in keywords):
+            fuzzy.append(obj)
+
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        return exact
+    if len(fuzzy) == 1:
+        return fuzzy[0]
+    if len(fuzzy) > 1:
+        return fuzzy
+    return None
+
+
+class CmdAskNPC(MuxCommand):
+    key = "ask"
+    locks = "cmd:all()"
+    help_category = "General"
+    rhs_split = ("=",)
+
+    def func(self):
+        caller = self.caller
+        target_name = (self.lhs or "").strip()
+        message = (self.rhs or "").strip()
+        if not target_name or not message:
+            caller.msg("Usage: ask <npc名字> = <对他说的话>")
+            return
+
+        target = _find_matching_npc(caller, target_name)
+        if isinstance(target, list):
+            caller.msg("Ask which NPC? " + ", ".join(obj.key for obj in target))
+            return
+        if not target:
+            caller.msg(f"Could not find '{target_name}'.")
+            return
+
+        target.handle_player_input(caller, message, force=True, msg_type="ask")
+
+
+class LLMNPCInteractionCmdSet(CmdSet):
+    key = "LLMNPCInteraction"
+
+    def at_cmdset_creation(self):
+        self.add(CmdAskNPC())
+
+
+class LLMNPC(Character):
     @classmethod
     def normalize_name(cls, name):
         return str(name).strip()
@@ -66,21 +192,42 @@ class LLMNPC(Character):
     def at_object_creation(self):
         super().at_object_creation()
         self.ndb.is_thinking = False
+        self._ensure_cmdset()
+        self.locks.add("call:all()")
 
     def at_init(self):
         super().at_init()
         if getattr(self.ndb, "is_thinking", None) is None:
             self.ndb.is_thinking = False
+        self._ensure_cmdset()
+        self.locks.add("call:all()")
+
+    def at_msg_receive(self, text=None, from_obj=None, **kwargs):
+        logger.log_info(
+            f"LLMNPC at_msg_receive key={self.key!r} raw_text={text!r} from_obj={from_obj!r} kwargs={kwargs!r}"
+        )
+        message, payload = _extract_message_text(text)
+        merged_kwargs = dict(payload)
+        merged_kwargs.update(kwargs)
+        self.handle_player_input(from_obj, message, **merged_kwargs)
+        return True
 
     def at_heard_say(self, speaker, message: str, **kwargs):
-        if not isinstance(message, str) or not message:
-            return
-        if not self.should_respond(speaker, message, **kwargs):
-            return
+        self.handle_player_input(speaker, message, **kwargs)
+
+    def handle_player_input(self, speaker, message: str, force: bool = False, **kwargs) -> bool:
+        if not isinstance(message, str):
+            return False
+        message = message.strip()
+        if not message:
+            return False
+
+        if not force and not self.should_respond(speaker, message, **kwargs):
+            return False
 
         if getattr(self.ndb, "is_thinking", False):
             self._emit_busy()
-            return
+            return True
 
         self.ndb.is_thinking = True
         prompt = self.build_prompt(speaker, message, **kwargs)
@@ -88,17 +235,22 @@ class LLMNPC(Character):
             self._call_llm(prompt, speaker=speaker, message=message, **kwargs)
         except Exception as err:
             self._on_llm_error(err, speaker=speaker, message=message, **kwargs)
+        return True
 
     def should_respond(self, speaker, message: str, **kwargs) -> bool:
         if not message or not isinstance(message, str):
             return False
+        if not speaker or speaker is self or kwargs.get("from_obj") is self:
+            return False
+        if self.location and getattr(speaker, "location", None) is not self.location:
+            return False
 
-        if speaker is self or kwargs.get("from_obj") is self:
+        has_account = getattr(speaker, "has_account", None)
+        if has_account is False:
             return False
 
         if not self._is_say_payload(**kwargs):
             return False
-
         return self._is_explicitly_addressed(message)
 
     def _is_say_payload(self, **kwargs) -> bool:
@@ -109,26 +261,41 @@ class LLMNPC(Character):
             kwargs.get("msg_type")
             or kwargs.get("message_type")
             or kwargs.get("event_type")
+            or kwargs.get("type")
             or ""
         )
         if msg_type:
             normalized = str(msg_type).strip().lower()
-            return normalized in {"say", "speech", "at_say"}
+            return normalized in {"say", "speech", "at_say", "ask"}
 
         if kwargs.get("channel") or kwargs.get("is_channel"):
             return False
-
         return True
 
+    def _name_keywords(self) -> set[str]:
+        keywords = _iter_name_keywords(getattr(self, "key", ""))
+        try:
+            for alias in self.aliases.all():
+                keywords.update(_iter_name_keywords(alias))
+        except Exception:
+            pass
+        return keywords
+
     def _is_explicitly_addressed(self, message: str) -> bool:
-        npc_name = str(self.key or "").strip()
-        if not npc_name:
+        normalized_message = _normalize_text(message)
+        if not normalized_message:
             return False
 
-        message_norm = message.casefold()
-        npc_name_norm = npc_name.casefold()
-        pattern = rf"(?<!\w){re.escape(npc_name_norm)}(?!\w)"
-        return bool(re.search(pattern, message_norm))
+        for keyword in self._name_keywords():
+            if CJK_RUN_RE.search(keyword):
+                if keyword in normalized_message:
+                    return True
+                continue
+
+            pattern = rf"(?<!\w){re.escape(keyword)}(?!\w)"
+            if re.search(pattern, normalized_message):
+                return True
+        return False
 
     def build_prompt(self, speaker, message: str, **kwargs) -> str:
         return str(message)
@@ -182,3 +349,7 @@ class LLMNPC(Character):
 
         self._emit_reply(FALLBACK_REPLY)
         return None
+
+    def _ensure_cmdset(self):
+        if not self.cmdset.has(LLMNPCInteractionCmdSet):
+            self.cmdset.add_default(LLMNPCInteractionCmdSet, persistent=True)
