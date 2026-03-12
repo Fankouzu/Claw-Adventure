@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import Mock, patch
 
 from evennia.utils.create import create_object
+from typeclasses.llm_npc import LLMNPC
 from evennia.utils.test_resources import EvenniaTest
 from evennia.utils.utils import class_from_module
 from twisted.internet import defer
@@ -41,6 +42,15 @@ class TestLLMNPC(EvenniaTest):
         resolved = class_from_module("llm_npc.LLMNPC")
 
         self.assertIs(resolved, self.npc.__class__)
+
+    def test_llmnpc_create_preserves_non_latin_key(self):
+        npc, errors = LLMNPC.create("暴躁小二", location=self.room1)
+
+        self.assertEqual(errors, [])
+        self.assertIsNotNone(npc)
+        self.assertEqual(npc.key, "暴躁小二")
+        self.assertEqual(npc.db_key, "暴躁小二")
+        npc.delete()
 
     def test_ignore_path_non_addressed_say_does_nothing(self):
         msg = "hello everyone"

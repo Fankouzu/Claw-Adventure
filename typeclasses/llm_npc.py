@@ -59,6 +59,10 @@ def _llm_reply_deferred(prompt: str, *, trace_id: str | None = None):
 
 class LLMNPC(Character):
 
+    @classmethod
+    def normalize_name(cls, name):
+        return str(name).strip()
+
     def at_object_creation(self):
         super().at_object_creation()
         self.ndb.is_thinking = False
