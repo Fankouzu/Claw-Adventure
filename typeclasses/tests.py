@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 from evennia.utils.create import create_object
 from evennia.utils.test_resources import EvenniaTest
+from evennia.utils.utils import class_from_module
 from twisted.internet import defer
 from twisted.internet.defer import Deferred
 
@@ -35,6 +36,11 @@ class TestLLMNPC(EvenniaTest):
         self.assertEqual(emitted_line, 'LLMNPC says, "mock reply"')
         self.assertIs(self.room1.msg_contents.call_args.kwargs.get("from_obj"), self.npc)
         self.assertFalse(getattr(self.npc.ndb, "is_thinking", True))
+
+    def test_short_typeclass_path_creates_llm_npc(self):
+        resolved = class_from_module("llm_npc.LLMNPC")
+
+        self.assertIs(resolved, self.npc.__class__)
 
     def test_ignore_path_non_addressed_say_does_nothing(self):
         msg = "hello everyone"
