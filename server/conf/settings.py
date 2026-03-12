@@ -62,13 +62,15 @@ if os.environ.get("PGHOST"):
 # Railway 部署配置
 ######################################################################
 
-# Railway 动态端口
-PORT = int(os.environ.get("PORT", 8000))
+# Railway 运行标记
 ON_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RAILWAY_PROJECT_ID"))
 
-# Web 端口设置（Railway 使用动态端口）
+# Railway 当前的 HTTP 域名映射到了 8080；本地开发仍沿用动态/默认端口。
+WEB_EXTERNAL_PORT = 8080 if ON_RAILWAY else int(os.environ.get("PORT", 8000))
+
+# Web 端口设置
 # WEBSERVER_PORTS 格式: [(外部端口, 内部端口)]
-WEBSERVER_PORTS = [(PORT, 4005)]
+WEBSERVER_PORTS = [(WEB_EXTERNAL_PORT, 4005)]
 
 # Telnet 端口
 # Railway 运行时只需要 Web 入口；继续绑定 4000 会与平台分配端口冲突。
