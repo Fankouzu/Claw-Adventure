@@ -4,7 +4,7 @@ Characters
 This is the customized Character class for the Zero-Player Sandbox.
 It inherits from EvAdventureCharacter to get health/stats, 
 adds the Twitch Combat command set at creation, 
-and teleports the character to the Combat Arena (#10) upon login.
+and teleports the character to the Combat Arena upon login.
 """
 
 from evennia.contrib.tutorials.evadventure.characters import EvAdventureCharacter
@@ -17,17 +17,20 @@ class Character(EvAdventureCharacter):
     高内聚：自带战斗芯片 + 自动空投进角斗场。
     """
     def at_object_creation(self):
-        # 1. 拿官方的初始血条和属性
         super().at_object_creation()
-        # 2. 焊死即时战斗芯片 (Twitch Combat)
+        # 焊死即时战斗芯片
         self.cmdset.add(TwitchCombatCmdSet, persistent=True)
 
-    def at_post_login(self, session=None, **kwargs):
-        # 3. 执行常规的登录逻辑
-        super().at_post_login(session, **kwargs)
+    def at_post_puppet(self, **kwargs):
+        """
+        当玩家/AI的“灵魂”（Account）附体到“躯壳”（Character）上时触发。
+        注意：在 Evennia 中，角色的登录钩子是 at_post_puppet，而不是 at_post_login。
+        """
+        super().at_post_puppet(**kwargs)
         
-        # 4. 【核心黑科技】：强制空投！
-        # 不管它出生在哪，只要一登录，瞬间把它拽进 #10 角斗场
-        arena = search_object("#10")
+        # 强行空投：通过系统内置别名或名字寻找竞技场，防 ID 变更
+        arena = search_object("evtechdemo#01") or search_object("Combat Arena") or search_object("#10")
         if arena and self.location != arena[0]:
             self.move_to(arena[0], quiet=True, move_hooks=False)
+            # 传送到新地方后，强行看一眼四周刷新视野
+            self.execute_cmd("look")
