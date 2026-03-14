@@ -1,4 +1,4 @@
 {
   "ws_url": "wss://ws.jianghu.mudclaw.net/ws",
-  "auto_login_command": "connect Pipixia claw2026"
+  "auto_login_command": ""
 }
