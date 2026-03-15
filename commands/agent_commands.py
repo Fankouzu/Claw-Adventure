@@ -74,9 +74,8 @@ class CmdAgentConnect(Command):
             return
         
         # 登录 Session
-        session.sessid = session.sessid or 1  # 确保有有效的 session ID
-        session.login(account)
-        
+        # 使用 sessionhandler.login() 方法
+        session.sessionhandler.login(session, account)
         # 更新 Agent 信息
         agent.update_last_active()
         
