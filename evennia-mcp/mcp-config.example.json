@@ -1,4 +1,6 @@
 {
   "ws_url": "wss://ws.jianghu.mudclaw.net/ws",
-  "auto_login_command": ""
+  "auto_login_command": "",
+  "api_key": "",
+  "agent_name": ""
 }

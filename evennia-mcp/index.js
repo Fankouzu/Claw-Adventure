@@ -51,9 +51,19 @@ function loadConfig() {
     throw new Error("Invalid config: `auto_login_command` must be a string if provided.");
   }
 
+  // Support API Key authentication
+  const api_key = parsed.api_key || process.env.EVENNIA_API_KEY || "";
+  const agent_name = parsed.agent_name || process.env.EVENNIA_AGENT_NAME || "";
+  
+  if (api_key && !api_key.startsWith("claw_")) {
+    throw new Error("Invalid config: `api_key` must start with 'claw_'");
+  }
+
   return {
     ws_url: parsed.ws_url,
-    auto_login_command: parsed.auto_login_command ?? ""
+    auto_login_command: parsed.auto_login_command ?? "",
+    api_key,
+    agent_name
   };
 }
 
@@ -68,6 +78,9 @@ class MudBridge {
     this.ws = null;
     this.keepaliveTimer = null;
     this.droppedChars = 0;
+    this.authenticated = false;
+    this.authAttempts = 0;
+    this.maxAuthAttempts = 3;
   }
 
   start() {
@@ -82,17 +95,25 @@ class MudBridge {
 
     this.state = "CONNECTING";
     this.lastActionTime = Date.now();
+    
     this.ws.addEventListener("open", () => {
       this.state = "READY";
       this.lastError = null;
       this.lastActionTime = Date.now();
-      if (this.config.auto_login_command) {
+      this.authenticated = false;
+      this.authAttempts = 0;
+      
+      // If API Key is configured, authenticate as Agent
+      if (this.config.api_key) {
+        this.authenticateAgent();
+      } else if (this.config.auto_login_command) {
         this.sendCommand(this.config.auto_login_command, true);
       }
     });
 
     this.ws.addEventListener("close", () => {
       this.state = "RECONNECTING";
+      this.authenticated = false;
     });
 
     this.ws.addEventListener("error", (event) => {
@@ -114,6 +135,33 @@ class MudBridge {
     }, 1000);
   }
 
+  /**
+   * Authenticate as an Agent using API Key
+   */
+  authenticateAgent() {
+    if (!this.config.api_key) {
+      logError("[evennia-mcp] No API key configured");
+      return;
+    }
+    
+    if (this.authAttempts >= this.maxAuthAttempts) {
+      logError("[evennia-mcp] Max authentication attempts reached");
+      this.lastError = "Authentication failed: max attempts reached";
+      return;
+    }
+    
+    this.authAttempts++;
+    this.state = "AUTHENTICATING";
+    
+    // Send agent_connect command with API key
+    const authCommand = `agent_connect ${this.config.api_key}`;
+    logError(`[evennia-mcp] Attempting agent authentication (attempt ${this.authAttempts})`);
+    this.sendCommand(authCommand, true);
+    
+    // Wait for authentication response
+    // The response will be processed in handleIncoming
+  }
+
   stop() {
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);
@@ -128,6 +176,7 @@ class MudBridge {
       this.ws = null;
     }
     this.state = "DISCONNECTED";
+    this.authenticated = false;
   }
 
   handleIncoming(rawData) {
@@ -152,6 +201,20 @@ class MudBridge {
 
     if (!text) {
       return;
+    }
+
+    // Check for authentication success message
+    if (text.includes("Welcome, Agent") && this.state === "AUTHENTICATING") {
+      this.authenticated = true;
+      this.state = "READY";
+      logError(`[evennia-mcp] Agent authentication successful`);
+    }
+    
+    // Check for authentication failure
+    if (text.includes("Invalid API key") || text.includes("not been claimed")) {
+      this.authenticated = false;
+      this.lastError = "Agent authentication failed: " + text.trim();
+      logError(`[evennia-mcp] Agent authentication failed: ${text.trim()}`);
     }
 
     this.gameTextBuffer += text;
@@ -192,7 +255,9 @@ class MudBridge {
   statusText() {
     return [
       `STATE: ${this.state}`,
+      `AUTHENTICATED: ${this.authenticated}`,
       `WS_URL: ${this.config.ws_url}`,
+      `AGENT: ${this.config.agent_name || 'N/A'}`,
       `LAST_ERROR: ${this.lastError ?? "none"}`,
       `BUFFER_CHARS: ${this.gameTextBuffer.length}`,
       `DROPPED_CHARS: ${this.droppedChars}`
@@ -216,7 +281,7 @@ async function main() {
 
   const server = new McpServer({
     name: "evennia-mcp",
-    version: "1.0.0"
+    version: "1.1.0"
   });
 
   server.registerTool(
