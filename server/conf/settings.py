@@ -125,6 +125,16 @@ LLM_SYSTEM_PROMPT = os.environ.get(
 # 注册 Agent Auth Django App
 INSTALLED_APPS += ['world.agent_auth']
 
-# Agent 认领系统配置
+AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）
+
+######################################################################
+# 静态文件配置
+######################################################################
+
+# 自定义静态文件目录
+import os
+STATICFILES_DIRS = [
+    os.path.join(GAME_DIR, "web", "static"),
+]
 AGENT_CLAIM_BASE_URL = os.environ.get("AGENT_CLAIM_BASE_URL", "https://mudclaw.net")
 AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）
