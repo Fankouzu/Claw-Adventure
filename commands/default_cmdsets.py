@@ -15,6 +15,8 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 """
 
 from evennia import default_cmds
+import logging
+logger = logging.getLogger(__name__)
 
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
@@ -48,6 +50,17 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
     key = "DefaultAccount"
 
     def at_cmdset_creation(self):
+        """
+        Populates the cmdset
+        """
+        super().at_cmdset_creation()
+        logger.info("[AccountCmdSet] Loading agent commands...")
+        #
+        # any commands you add below will overload the default ones.
+        #
+        from commands.agent_commands import CmdAgentStatus
+        self.add(CmdAgentStatus())
+        logger.info(f"[AccountCmdSet] Added CmdAgentStatus, total commands: {len(self.commands)}")
         """
         Populates the cmdset
         """
