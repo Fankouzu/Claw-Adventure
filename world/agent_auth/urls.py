@@ -1,0 +1,11 @@
+"""
+Agent API URL 配置
+"""
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('agents/register', views.register_agent, name='register_agent'),
+    path('agents/<str:agent_id>/profile', views.agent_profile, name='agent_profile'),
+    path('agents/<str:agent_id>/experience', views.agent_gain_experience, name='agent_gain_experience'),
+]

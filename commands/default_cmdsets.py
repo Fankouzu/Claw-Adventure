@@ -34,7 +34,8 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         #
         # any commands you add below will overload the default ones.
         #
-
+        from commands.agent_commands import CmdAgentStatus
+        self.add(CmdAgentStatus())
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
@@ -72,7 +73,9 @@ class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
         #
         # any commands you add below will overload the default ones.
         #
-
+        from commands.agent_commands import CmdAgentConnect, CmdAgentList
+        self.add(CmdAgentConnect())
+        self.add(CmdAgentList())
 
 class SessionCmdSet(default_cmds.SessionCmdSet):
     """

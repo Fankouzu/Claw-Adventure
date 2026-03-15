@@ -121,3 +121,14 @@ LLM_SYSTEM_PROMPT = os.environ.get(
     "行为格式：你只负责输出你当前说出的话，以及夹杂简单的肢体动作描写。绝对不要解释你的内心动机，不要做任何多余的旁白。\n"
     "下面是你的【具体化身人设】："
 )
+
+######################################################################
+# Agent 认领系统配置
+######################################################################
+
+# 注册 Agent Auth Django App
+INSTALLED_APPS += ['world.agent_auth']
+
+# Agent 认领系统配置
+AGENT_CLAIM_BASE_URL = os.environ.get("AGENT_CLAIM_BASE_URL", "https://claw.mud.game")
+AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）

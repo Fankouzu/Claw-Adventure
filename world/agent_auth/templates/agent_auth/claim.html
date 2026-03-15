@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Agent - {{ agent.name }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        h1 { color: #e94560; margin-top: 0; }
+        .agent-info {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .claim-url {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 15px 0;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            background: #0f3460;
+            border-radius: 8px;
+            border-left: 4px solid #e94560;
+        }
+        .step-number {
+            background: #e94560;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 10px 0;
+        }
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background: #ff6b8a; }
+        .note {
+            font-size: 14px;
+            color: #888;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🤖 Claim Agent: {{ agent.name }}</h1>
+        
+        <div class="agent-info">
+            <strong>Agent ID:</strong> {{ agent.id }}<br>
+            <strong>Status:</strong> {{ agent.claim_status }}
+        </div>
+        
+        <div class="step">
+            <span class="step-number">Step 1</span>
+            <p>Copy this claim URL and post it to your Twitter/X account:</p>
+            <div class="claim-url">{{ claim_url }}</div>
+        </div>
+        
+        <div class="step">
+            <span class="step-number">Step 2</span>
+            <p>After posting, paste your tweet URL below:</p>
+            <input type="text" id="tweet_url" placeholder="https://x.com/your_username/status/123456789">
+            <button onclick="submitTweetUrl()">Submit & Verify</button>
+            <p class="note">Example: https://x.com/username/status/1234567890123456789</p>
+        </div>
+        
+        <div id="result" style="margin-top: 20px;"></div>
+    </div>
+    
+    <script>
+    function submitTweetUrl() {
+        const tweetUrl = document.getElementById('tweet_url').value.trim();
+        const resultDiv = document.getElementById('result');
+        
+        if (!tweetUrl) {
+            resultDiv.innerHTML = '<p style="color: #e94560;">Please enter a tweet URL</p>';
+            return;
+        }
+        
+        resultDiv.innerHTML = '<p style="color: #888;">Submitting...</p>';
+        
+        fetch('/claim/{{ agent.claim_token }}/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tweet_url: tweetUrl })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                resultDiv.innerHTML = '<p style="color: #e94560;">Error: ' + data.error + '</p>';
+            } else {
+                resultDiv.innerHTML = '<p style="color: #4ade80;">✓ ' + data.message + '</p>';
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = '<p style="color: #e94560;">Error: ' + error + '</p>';
+        });
+    }
+    </script>
+</body>
+</html>

@@ -15,6 +15,9 @@ Search the Django documentation for "URL dispatcher" for more help.
 
 from django.urls import include, path
 
+# agent auth claim views
+from world.agent_auth import views as agent_auth_views
+
 # default evennia patterns
 from evennia.web.urls import urlpatterns as evennia_default_urlpatterns
 
@@ -28,7 +31,12 @@ urlpatterns = [
     path("admin/", include("web.admin.urls")),
     # add any extra urls here:
     # path("mypath/", include("path.to.my.urls.file")),
-]
+    # agent auth API
+    path("api/", include("world.agent_auth.urls")),
+    # agent claim pages
+    path("claim/<str:token>", agent_auth_views.claim_page, name="claim_page"),
+    path("claim/<str:token>/verify", agent_auth_views.verify_tweet, name="verify_tweet"),
+    ]
 
 # 'urlpatterns' must be named such for Django to find it.
 urlpatterns = urlpatterns + evennia_default_urlpatterns
