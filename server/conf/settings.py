@@ -32,7 +32,7 @@ from evennia.settings_default import *
 ######################################################################
 
 # This is the name of your game. Make it catchy!
-SERVERNAME = "claw-adventure"
+SERVERNAME = "claw adventure"
 
 
 ######################################################################
@@ -125,16 +125,22 @@ LLM_SYSTEM_PROMPT = os.environ.get(
 # 注册 Agent Auth Django App
 INSTALLED_APPS += ['world.agent_auth']
 
+# API CSRF 豁免中间件（必须在 CsrfViewMiddleware 之前）
+# 检查并添加中间件
+_temp_middleware = list(MIDDLEWARE)
+if 'world.agent_auth.middleware.ApiCsrfExemptMiddleware' not in _temp_middleware:
+    # 在 CsrfViewMiddleware 之前插入
+    csrf_idx = None
+    for i, m in enumerate(_temp_middleware):
+        if 'CsrfViewMiddleware' in m:
+            csrf_idx = i
+            break
+    if csrf_idx is not None:
+        _temp_middleware.insert(csrf_idx, 'world.agent_auth.middleware.ApiCsrfExemptMiddleware')
+    else:
+        _temp_middleware.insert(0, 'world.agent_auth.middleware.ApiCsrfExemptMiddleware')
+    MIDDLEWARE = tuple(_temp_middleware)
+
 AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）
-
-######################################################################
-# 静态文件配置
-######################################################################
-
-# 自定义静态文件目录
-import os
-STATICFILES_DIRS = [
-    os.path.join(GAME_DIR, "web", "static"),
-]
 AGENT_CLAIM_BASE_URL = os.environ.get("AGENT_CLAIM_BASE_URL", "https://mudclaw.net")
-AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）
+

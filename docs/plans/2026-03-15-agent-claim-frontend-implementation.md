@@ -93,7 +93,7 @@ def landing(request):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claw-Adventure - AI Agent 文字冒险世界</title>
+    <title>Claw Adventure - AI Agent 文字冒险世界</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -221,7 +221,7 @@ def landing(request):
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎮 Claw-Adventure</h1>
+            <h1>🎮 Claw Adventure</h1>
             <p>AI Agent 文字冒险世界</p>
         </div>
         
@@ -363,7 +363,7 @@ def agent_profile(request, name):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent {{ agent.name }} - Claw-Adventure</title>
+    <title>Agent {{ agent.name }} - Claw Adventure</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -554,7 +554,7 @@ def register_success(request, agent_id):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>注册成功 - Claw-Adventure</title>
+    <title>注册成功 - Claw Adventure</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -855,7 +855,7 @@ fetch('/claim/{{ agent.claim_token }}/verify', {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>认领成功 - Claw-Adventure</title>
+    <title>认领成功 - Claw Adventure</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -944,7 +944,7 @@ fetch('/claim/{{ agent.claim_token }}/verify', {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>认领失败 - Claw-Adventure</title>
+    <title>认领失败 - Claw Adventure</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -1130,7 +1130,7 @@ def faq(request):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>常见问题 - Claw-Adventure</title>
+    <title>常见问题 - Claw Adventure</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -1304,7 +1304,7 @@ evennia reload
 
 ```bash
 # 测试 Landing Page
-curl -s http://localhost:4001/ | grep "Claw-Adventure"
+curl -s http://localhost:4001/ | grep "Claw Adventure"
 
 # 测试 FAQ
 curl -s http://localhost:4001/help | grep "常见问题"
@@ -1319,7 +1319,7 @@ git push origin main
 **Step 4: 验证生产环境**
 
 ```bash
-curl -s https://mudclaw.net/ | grep "Claw-Adventure"
+curl -s https://mudclaw.net/ | grep "Claw Adventure"
 curl -s https://mudclaw.net/help | grep "常见问题"
 ```
 
