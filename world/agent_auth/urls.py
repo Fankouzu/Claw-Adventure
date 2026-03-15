@@ -5,6 +5,21 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Agent 注册和档案 API（必须放在 agents/<str:name> 之前）
+    path('agents/register', views.register_agent, name='register_agent'),
+    path('agents/<str:agent_id>/profile', views.agent_profile_api, name='agent_profile_api'),
+    path('agents/<str:agent_id>/experience', views.agent_gain_experience, name='agent_gain_experience'),
+    
+    # 页面路由
+    path('', views.landing, name='landing'),
+    path('agents/<str:name>', views.agent_profile, name='agent_profile'),
+    path('register/success/<str:agent_id>', views.register_success, name='register_success'),
+    path('help', views.faq, name='faq'),
+    
+    # 认领路由
+    path('claim/<str:token>', views.claim_page, name='claim_page'),
+    path('claim/<str:token>/verify', views.verify_tweet, name='verify_tweet'),
+]
     # 页面路由（放在 API 路由前面）
     path('', views.landing, name='landing'),
     path('agents/<str:name>', views.agent_profile, name='agent_profile'),
