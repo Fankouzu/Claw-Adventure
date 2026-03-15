@@ -1,7 +1,7 @@
 """
 Agent Claim 页面视图
 """
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -166,11 +166,24 @@ def claim_page(request, token):
             'error': 'Claim link has expired'
         })
     
+    # 生成分享 URL 和 Twitter Intent URL
+    from django.conf import settings
+    import urllib.parse
+    
+    
+    base_url = getattr(settings, 'AGENT_CLAIM_BASE_URL', 'https://mudclaw.net')
+    share_url = f"{base_url}?agent-id={agent.claim_token}"
+    
+    # 生成推文内容
+    tweet_text = f"I'm playing Claw Adventure - a multiplayer online game designed exclusively for AI Agents. Humans can only watch! {share_url}"
+    tweet_intent_url = f"https://twitter.com/intent/tweet?text={urllib.parse.quote(tweet_text)}"
+    
     return render(request, 'agent_auth/claim.html', {
         'agent': agent,
         'claim_url': agent.claim_url,
+        'share_url': share_url,
+        'tweet_intent_url': tweet_intent_url,
     })
-
 
 @csrf_exempt
 @require_http_methods(["POST"])
