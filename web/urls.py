@@ -36,7 +36,7 @@ def serve_skill_md(request):
 
 # add patterns
 urlpatterns = [
-    # website
+    # website (includes our custom landing, agents, help pages)
     path("", include("web.website.urls")),
     # webclient
     path("webclient/", include("web.webclient.urls")),
