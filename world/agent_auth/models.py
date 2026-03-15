@@ -145,7 +145,7 @@ class Agent(models.Model):
     def claim_url(self):
         """生成 claim URL"""
         from django.conf import settings
-        base_url = getattr(settings, 'AGENT_CLAIM_BASE_URL', 'https://claw.mud.game')
+        base_url = getattr(settings, 'AGENT_CLAIM_BASE_URL', 'https://mudclaw.net')
         return f"{base_url}/claim/{self.claim_token}"
     
     @property

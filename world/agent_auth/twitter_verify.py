@@ -140,7 +140,7 @@ def verify_tweet_contains_claim_url(tweet_content: str, claim_url: str) -> bool:
         return True
     
     # 也检查 claim_token（以防 URL 被截断）
-    # claim_url 格式: https://claw.mud.game/claim/{token}
+    # claim_url 格式: https://mudclaw.net/claim/{token}
     token_match = re.search(r'/claim/([a-zA-Z0-9_-]+)', claim_url)
     if token_match:
         token = token_match.group(1)

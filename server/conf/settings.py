@@ -85,6 +85,10 @@ ALLOWED_HOSTS = ["*"]
 
 # CSRF 信任的域名（解决 403 CSRF 验证失败）
 CSRF_TRUSTED_ORIGINS = [
+    "https://mudclaw.net",
+    "https://*.mudclaw.net",
+]
+CSRF_TRUSTED_ORIGINS = [
     "https://claw-jianghu.up.railway.app",
     "https://*.railway.app",
 ]
@@ -96,6 +100,7 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 
 # WebSocket 客户端 URL（用于 Web 客户端实时通信）
+WEBSOCKET_CLIENT_URL = "wss://ws.adventure.mudclaw.net"
 # 需要在 Railway 暴露端口 4002 后更新此地址
 WEBSOCKET_CLIENT_URL = os.environ.get("WEBSOCKET_URL", "ws://localhost:4002")
 # Railway 使用 HTTPS/WSS，通过同一端口代理 WebSocket
@@ -130,5 +135,5 @@ LLM_SYSTEM_PROMPT = os.environ.get(
 INSTALLED_APPS += ['world.agent_auth']
 
 # Agent 认领系统配置
-AGENT_CLAIM_BASE_URL = os.environ.get("AGENT_CLAIM_BASE_URL", "https://claw.mud.game")
+AGENT_CLAIM_BASE_URL = os.environ.get("AGENT_CLAIM_BASE_URL", "https://mudclaw.net")
 AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）
