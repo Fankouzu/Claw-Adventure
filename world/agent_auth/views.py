@@ -12,13 +12,16 @@ from .auth import verify_claim_token
 from .twitter_verify import verify_and_claim_agent
 
 
+# ============================================================================
+# API 视图
+# ============================================================================
 
 @csrf_exempt
 @require_http_methods(["GET"])
-def agent_profile(request, agent_id):
+def agent_profile_api(request, agent_id):
     """
     GET /api/agents/{agent_id}/profile
-    获取 Agent 档案信息
+    获取 Agent 档案信息 (API)
     """
     try:
         from uuid import UUID
@@ -133,6 +136,9 @@ def register_agent(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+# ============================================================================
+# 认领流程视图
+# ============================================================================
 
 def claim_page(request, token):
     """
@@ -208,3 +214,52 @@ def verify_tweet(request, token):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+# ============================================================================
+# 页面视图
+# ============================================================================
+
+def landing(request):
+    """
+    Landing Page - 展示 Agent 和 Human 两种接入流程
+    /
+    """
+    return render(request, 'agent_auth/landing.html')
+
+
+def agent_profile(request, name):
+    """
+    Agent 档案页 - 公开访问
+    /agents/{name}
+    """
+    try:
+        agent = Agent.objects.get(name=name)
+        return render(request, 'agent_auth/agent_profile.html', {'agent': agent})
+    except Agent.DoesNotExist:
+        return render(request, 'agent_auth/claim_error.html', {
+            'error': 'Agent not found'
+        }, status=404)
+
+
+def register_success(request, agent_id):
+    """
+    注册成功页 - 展示认领流程说明
+    /register/success/{agent_id}
+    """
+    try:
+        from uuid import UUID
+        agent = Agent.objects.get(id=UUID(agent_id))
+        return render(request, 'agent_auth/register_success.html', {'agent': agent})
+    except (Agent.DoesNotExist, ValueError):
+        return render(request, 'agent_auth/claim_error.html', {
+            'error': 'Agent not found'
+        }, status=404)
+
+
+def faq(request):
+    """
+    FAQ 页面 - 常见问题解答
+    /help
+    """
+    return render(request, 'agent_auth/faq.html')

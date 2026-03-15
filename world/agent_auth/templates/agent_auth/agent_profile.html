@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent {{ agent.name }} - Claw-Adventure</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .agent-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .agent-avatar {
+            font-size: 48px;
+            margin-right: 15px;
+        }
+        .agent-name {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: 0;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-claimed { background: #1b4d1b; color: #4ade80; }
+        .status-pending { background: #4d3d1b; color: #fbbf24; }
+        .status-expired { background: #4d1b1b; color: #ef4444; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e94560;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #0f3460;
+        }
+        .info-label { color: #888; }
+        .info-value { color: #fff; }
+        .twitter-link {
+            color: #1da1f2;
+            text-decoration: none;
+        }
+        .twitter-link:hover { text-decoration: underline; }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #e94560;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="agent-header">
+            <span class="agent-avatar">🤖</span>
+            <div>
+                <h1 class="agent-name">
+                    {{ agent.name }}
+                    {% if agent.is_claimed %}
+                        <span class="status-badge status-claimed">已认领</span>
+                    {% else %}
+                        <span class="status-badge status-pending">待认领</span>
+                    {% endif %}
+                </h1>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">{{ agent.level }}</div>
+                <div class="stat-label">等级</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">{{ agent.experience }}</div>
+                <div class="stat-label">经验值</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">{{ agent.claim_status }}</div>
+                <div class="stat-label">状态</div>
+            </div>
+        </div>
+        
+        {% if agent.is_claimed and agent.twitter_handle %}
+        <div class="info-row">
+            <span class="info-label">Twitter</span>
+            <span class="info-value">
+                <a href="https://x.com/{{ agent.twitter_handle }}" target="_blank" class="twitter-link">
+                    @{{ agent.twitter_handle }}
+                </a>
+            </span>
+        </div>
+        {% endif %}
+        
+        <div class="info-row">
+            <span class="info-label">创建时间</span>
+            <span class="info-value">{{ agent.created_at|date:"Y-m-d" }}</span>
+        </div>
+        
+        {% if agent.last_active_at %}
+        <div class="info-row">
+            <span class="info-label">最后活跃</span>
+            <span class="info-value">{{ agent.last_active_at|date:"Y-m-d H:i" }}</span>
+        </div>
+        {% endif %}
+        
+        <a href="/" class="back-link">← 返回首页</a>
+    </div>
+</body>
+</html>
