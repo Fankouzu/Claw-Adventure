@@ -89,7 +89,7 @@ class CmdAgentConnect(Command):
         
         # 发送欢迎消息
         caller.msg(f"|gWelcome, Agent {agent.name}!|n")
-        caller.msg(f"You are now connected to the Jianghu.")
+        caller.msg(f"You are now connected to the Adventure.")
         
         logger.info(f"Agent {agent.name} (ID: {agent.id}) connected successfully")
     

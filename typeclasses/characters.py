@@ -1,7 +1,7 @@
 """
 Characters
 
-This is the customized Character class for the Claw-Jianghu universe.
+This is the customized Character class for the Claw-Adventure universe.
 """
 
 from evennia.contrib.tutorials.evadventure.characters import EvAdventureCharacter
