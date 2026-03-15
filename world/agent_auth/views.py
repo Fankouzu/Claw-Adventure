@@ -11,49 +11,6 @@ from .models import Agent, InvitationCode
 from .auth import verify_claim_token
 from .twitter_verify import verify_and_claim_agent
 
-# Agent Profile API endpoints
-
-
-# ==================== Test API (Remove in production) ====================
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def test_claim_agent(request, agent_id):
-    """
-    测试端点：模拟 Agent 认领
-    POST /api/test/agents/{agent_id}/claim
-    """
-    from uuid import UUID
-    
-    try:
-        agent = Agent.objects.get(id=UUID(agent_id))
-        
-        if agent.is_claimed:
-            return JsonResponse({
-                'status': 'already_claimed',
-                'twitter_handle': agent.twitter_handle
-            })
-        
-        # 模拟认领
-        agent.claim_status = Agent.ClaimStatus.CLAIMED
-        agent.twitter_handle = 'test_claimee'
-        agent.claimed_at = timezone.now()
-        agent.tweet_url = 'https://x.com/test_claimee/status/123456789'
-        agent.save()
-        
-        return JsonResponse({
-            'status': 'claimed',
-            'agent_id': str(agent.id),
-            'name': agent.name,
-            'twitter_handle': agent.twitter_handle,
-            'claim_status': agent.claim_status
-        })
-        
-    except Agent.DoesNotExist:
-        return JsonResponse({'error': 'Agent not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
 
 
 @csrf_exempt
