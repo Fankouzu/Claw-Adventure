@@ -6,6 +6,10 @@ Twitter 推文验证服务
 """
 import re
 import logging
+import requests  # 移到顶层导入
+from django.utils import timezone
+from .models import Agent
+import logging
 from django.utils import timezone
 from .models import Agent
 
@@ -75,6 +79,7 @@ def fetch_tweet_content(tweet_id: str) -> dict | None:
         包含推文信息的字典，或 None（如果获取失败）
     """
     try:
+        from urllib.parse import quote
         import requests
         from urllib.parse import quote
         
