@@ -157,10 +157,6 @@ class CmdAgentStatus(Command):
     aliases = ["agents"]
     locks = "cmd:all()"  # Agent 登录后可用
     help_category = "Agent"
-    aliases = ["agents"]
-    locks = "cmd:pperm(Developer)"
-    help_category = "Agent"
-    
     def func(self):
         """显示 Agent 状态"""
         from world.agent_auth.models import Agent
