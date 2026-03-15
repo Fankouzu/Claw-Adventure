@@ -155,6 +155,9 @@ class CmdAgentStatus(Command):
     
     key = "agent_status"
     aliases = ["agents"]
+    locks = "cmd:all()"  # Agent 登录后可用
+    help_category = "Agent"
+    aliases = ["agents"]
     locks = "cmd:pperm(Developer)"
     help_category = "Agent"
     
