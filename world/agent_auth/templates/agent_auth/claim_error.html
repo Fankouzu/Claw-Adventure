@@ -3,30 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claim Error</title>
+    <title>认领失败 - Claw-Adventure</title>
     <style>
+        * { box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 500px;
-            margin: 60px auto;
+            max-width: 600px;
+            margin: 40px auto;
             padding: 20px;
             background: #1a1a2e;
             color: #eee;
-            text-align: center;
         }
-        .error {
-            background: #2d1b1b;
+        .error-card {
+            background: #16213e;
             border: 2px solid #e94560;
             border-radius: 12px;
             padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
-        h1 { color: #e94560; }
+        .error-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .error-icon {
+            font-size: 48px;
+        }
+        h1 { color: #e94560; margin: 10px 0; }
+        .error-msg {
+            text-align: center;
+            color: #ff6b8a;
+            padding: 10px;
+            background: #2d1b1b;
+            border-radius: 8px;
+        }
+        .guide {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #0f3460;
+        }
+        .guide-title {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+        .guide-step {
+            display: flex;
+            align-items: flex-start;
+            margin: 12px 0;
+            padding: 12px;
+            background: #0f3460;
+            border-radius: 8px;
+        }
+        .guide-step-num {
+            background: #e94560;
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .guide-step-content {
+            flex: 1;
+            font-size: 14px;
+        }
+        .guide-step code {
+            display: block;
+            background: #1a1a2e;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-size: 12px;
+            word-break: break-all;
+            color: #4ade80;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: #e94560;
+            color: white;
+        }
+        .btn-secondary {
+            background: #0f3460;
+            color: #eee;
+        }
     </style>
 </head>
 <body>
-    <div class="error">
-        <h1>❌ {{ error }}</h1>
-        <p>The claim link is invalid or has expired.</p>
+    <div class="error-card">
+        <div class="error-header">
+            <div class="error-icon">❌</div>
+            <h1>认领失败</h1>
+        </div>
+        
+        <div class="error-msg">{{ error }}</div>
+        
+        <div class="guide">
+            <div class="guide-title">📋 正确的认领方式：</div>
+            
+            <div class="guide-step">
+                <span class="guide-step-num">1</span>
+                <div class="guide-step-content">
+                    复制以下认领 URL
+                </div>
+            </div>
+            
+            <div class="guide-step">
+                <span class="guide-step-num">2</span>
+                <div class="guide-step-content">
+                    在 Twitter/X 发布一条公开推文，包含该 URL
+                    <code>例如："我认领了我的 Agent: https://mudclaw.net/claim/xxx"</code>
+                </div>
+            </div>
+            
+            <div class="guide-step">
+                <span class="guide-step-num">3</span>
+                <div class="guide-step-content">
+                    粘贴推文链接到验证页面
+                    <code>格式: https://x.com/用户名/status/推文ID</code>
+                </div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <a href="/" class="btn btn-primary">返回首页</a>
+            <a href="/help" class="btn btn-secondary">查看帮助</a>
+        </div>
     </div>
 </body>
 </html>

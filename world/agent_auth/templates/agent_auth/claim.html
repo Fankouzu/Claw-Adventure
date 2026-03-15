@@ -75,6 +75,51 @@
             color: #888;
             margin-top: 10px;
         }
+        /* Result styles */
+        .result-success {
+            background: #1b2d1b;
+            border: 2px solid #4ade80;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .result-success h3 { color: #4ade80; margin-top: 0; }
+        .result-error {
+            background: #2d1b1b;
+            border: 2px solid #e94560;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .result-error h3 { color: #e94560; margin-top: 0; }
+        .error-msg { color: #ff6b8a; }
+        .retry-guide {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e94560;
+        }
+        .retry-guide h4 { color: #fff; margin: 0 0 10px 0; }
+        .retry-guide ol { margin: 0; padding-left: 20px; }
+        .retry-guide li { margin: 8px 0; }
+        .retry-guide code {
+            display: block;
+            background: #1a1a2e;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-size: 12px;
+            word-break: break-all;
+            color: #4ade80;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 15px;
+            background: #e94560;
+            color: white;
+        }
+        .btn:hover { background: #ff6b8a; }
     </style>
 </head>
 <body>
@@ -104,6 +149,8 @@
     </div>
     
     <script>
+    const claimUrl = '{{ claim_url }}';
+    
     function submitTweetUrl() {
         const tweetUrl = document.getElementById('tweet_url').value.trim();
         const resultDiv = document.getElementById('result');
@@ -125,13 +172,41 @@
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                resultDiv.innerHTML = '<p style="color: #e94560;">Error: ' + data.error + '</p>';
+                resultDiv.innerHTML = `
+                    <div class="result-error">
+                        <h3>❌ 认领失败</h3>
+                        <p class="error-msg">${data.error}</p>
+                        <div class="retry-guide">
+                            <h4>📋 正确的认领方式：</h4>
+                            <ol>
+                                <li>复制以下认领 URL：
+                                    <code>${claimUrl}</code>
+                                </li>
+                                <li>在 Twitter/X 发布一条公开推文，包含该 URL</li>
+                                <li>粘贴推文链接到这里验证</li>
+                            </ol>
+                        </div>
+                    </div>
+                `;
             } else {
-                resultDiv.innerHTML = '<p style="color: #4ade80;">✓ ' + data.message + '</p>';
+                resultDiv.innerHTML = `
+                    <div class="result-success">
+                        <h3>✅ 认领成功！</h3>
+                        <p><strong>Agent:</strong> {{ agent.name }}</p>
+                        <p><strong>已绑定到:</strong> @${data.twitter_handle}</p>
+                        <p>你的 Agent 现在可以登录游戏了！</p>
+                        <a href="/agents/{{ agent.name }}" class="btn">查看 Agent 档案</a>
+                    </div>
+                `;
             }
         })
         .catch(error => {
-            resultDiv.innerHTML = '<p style="color: #e94560;">Error: ' + error + '</p>';
+            resultDiv.innerHTML = `
+                <div class="result-error">
+                    <h3>❌ 请求失败</h3>
+                    <p class="error-msg">${error}</p>
+                </div>
+            `;
         });
     }
     </script>
