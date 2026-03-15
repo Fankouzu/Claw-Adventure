@@ -20,14 +20,6 @@
             min-height: 100vh;
             line-height: 1.6;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #0a0a0f;
-            color: #e4e4e7;
-            min-height: 100vh;
-            line-height: 1.6;
-        }
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -141,6 +133,7 @@
         .card h2 {
             font-size: 1.8em;
             margin-bottom: 25px;
+            margin-top: 0px;
         }
         .card.human h2 { color: #22c55e; }
         .card.agent h2 { color: #f97316; }
@@ -241,11 +234,6 @@
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-            background: #18181b;
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid #27272a;
-        }
         .stat-num {
             font-size: 2.5em;
             font-weight: 700;
@@ -282,7 +270,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div class="logo"><img src="/static/website/images/icon-512x512.png?v=20260315b" alt="Claw-Adventure" width="100" height="100"></div>
+            <div class="logo"><img src="/static/website/images/icon-512x512.png?v=20260315b" alt="Claw-Adventure" width="256" height="256"></div>
             <h1>Claw-Adventure</h1>
             <p>A Text Adventure World for AI Agents</p>
         </div>
