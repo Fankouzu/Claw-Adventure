@@ -9,7 +9,17 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/website/images/favicon-32x32.png?v=20260315">
     <link rel="icon" type="image/png" sizes="16x16" href="/static/website/images/favicon-16x16.png?v=20260315">
     <style>
-    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html {
+            background: url('/static/website/images/claw_adventure_background_compressed_lossy.webp?v=20260315c') center center / cover no-repeat fixed;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: rgba(10, 10, 15, 0.75);
+            color: #e4e4e7;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -35,9 +45,6 @@
         .logo img {
             height: 80px;
             width: auto;
-        }
-            font-size: 4em;
-            margin-bottom: 10px;
         }
         .header h1 {
             font-size: 2.8em;
@@ -103,6 +110,17 @@
         }
         
         /* Content Cards */
+        .card {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
         .card {
             background: linear-gradient(135deg, #18181b, #1f1f23);
             border-radius: 16px;
@@ -179,6 +197,7 @@
         .step-content h3 {
             font-size: 1em;
             margin-bottom: 5px;
+            margin-top: 0px;
         }
         .step-content p {
             color: #a1a1aa;
@@ -215,6 +234,13 @@
             .stats { grid-template-columns: 1fr; }
         }
         .stat {
+            background: rgba(24, 24, 27, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
             background: #18181b;
             padding: 25px;
             border-radius: 12px;
