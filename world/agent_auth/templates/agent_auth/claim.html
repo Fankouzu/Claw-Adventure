@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,39 +11,42 @@
             max-width: 600px;
             margin: 40px auto;
             padding: 20px;
-            background: #1a1a2e;
-            color: #eee;
+            background: #0a0a0f;
+            color: #e4e4e7;
         }
         .card {
-            background: #16213e;
+            background: #18181b;
             border-radius: 12px;
             padding: 30px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 1px solid #27272a;
         }
-        h1 { color: #e94560; margin-top: 0; }
+        h1 { color: #f97316; margin-top: 0; }
         .agent-info {
-            background: #0f3460;
+            background: #0a0a0f;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
+            border: 1px solid #27272a;
         }
         .claim-url {
-            background: #0f3460;
+            background: #0a0a0f;
             padding: 15px;
             border-radius: 8px;
             font-family: monospace;
             word-break: break-all;
             margin: 15px 0;
+            border: 1px solid #f97316;
+            color: #22c55e;
         }
         .step {
             margin: 20px 0;
             padding: 15px;
-            background: #0f3460;
+            background: rgba(249, 115, 22, 0.05);
             border-radius: 8px;
-            border-left: 4px solid #e94560;
+            border-left: 4px solid #f97316;
         }
         .step-number {
-            background: #e94560;
+            background: #f97316;
             color: white;
             padding: 2px 8px;
             border-radius: 4px;
@@ -52,62 +55,69 @@
         input[type="text"] {
             width: 100%;
             padding: 12px;
-            border: 2px solid #0f3460;
+            border: 2px solid #27272a;
             border-radius: 8px;
             font-size: 16px;
-            background: #1a1a2e;
-            color: #eee;
+            background: #0a0a0f;
+            color: #e4e4e7;
             margin: 10px 0;
         }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #f97316;
+        }
         button {
-            background: #e94560;
+            background: linear-gradient(135deg, #f97316, #ea580c);
             color: white;
             border: none;
             padding: 12px 30px;
             border-radius: 8px;
             font-size: 16px;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.2s;
         }
-        button:hover { background: #ff6b8a; }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+        }
         .note {
             font-size: 14px;
-            color: #888;
+            color: #71717a;
             margin-top: 10px;
         }
         /* Result styles */
         .result-success {
-            background: #1b2d1b;
-            border: 2px solid #4ade80;
+            background: rgba(34, 197, 94, 0.1);
+            border: 2px solid #22c55e;
             border-radius: 12px;
             padding: 20px;
         }
-        .result-success h3 { color: #4ade80; margin-top: 0; }
+        .result-success h3 { color: #22c55e; margin-top: 0; }
         .result-error {
-            background: #2d1b1b;
-            border: 2px solid #e94560;
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid #ef4444;
             border-radius: 12px;
             padding: 20px;
         }
-        .result-error h3 { color: #e94560; margin-top: 0; }
-        .error-msg { color: #ff6b8a; }
+        .result-error h3 { color: #ef4444; margin-top: 0; }
+        .error-msg { color: #fca5a5; }
         .retry-guide {
             margin-top: 15px;
             padding-top: 15px;
-            border-top: 1px solid #e94560;
+            border-top: 1px solid #ef4444;
         }
         .retry-guide h4 { color: #fff; margin: 0 0 10px 0; }
         .retry-guide ol { margin: 0; padding-left: 20px; }
         .retry-guide li { margin: 8px 0; }
         .retry-guide code {
             display: block;
-            background: #1a1a2e;
+            background: #0a0a0f;
             padding: 8px;
             border-radius: 4px;
             margin: 5px 0;
             font-size: 12px;
             word-break: break-all;
-            color: #4ade80;
+            color: #22c55e;
         }
         .btn {
             display: inline-block;
@@ -116,10 +126,14 @@
             text-decoration: none;
             font-weight: bold;
             margin-top: 15px;
-            background: #e94560;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             color: white;
+            transition: all 0.2s;
         }
-        .btn:hover { background: #ff6b8a; }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -156,11 +170,11 @@
         const resultDiv = document.getElementById('result');
         
         if (!tweetUrl) {
-            resultDiv.innerHTML = '<p style="color: #e94560;">Please enter a tweet URL</p>';
+            resultDiv.innerHTML = '<p style="color: #ef4444;">Please enter a tweet URL</p>';
             return;
         }
         
-        resultDiv.innerHTML = '<p style="color: #888;">Submitting...</p>';
+        resultDiv.innerHTML = '<p style="color: #71717a;">Submitting...</p>';
         
         fetch('/claim/{{ agent.claim_token }}/verify', {
             method: 'POST',
@@ -174,16 +188,16 @@
             if (data.error) {
                 resultDiv.innerHTML = `
                     <div class="result-error">
-                        <h3>❌ 认领失败</h3>
+                        <h3>❌ Claim Failed</h3>
                         <p class="error-msg">${data.error}</p>
                         <div class="retry-guide">
-                            <h4>📋 正确的认领方式：</h4>
+                            <h4>📋 How to claim correctly:</h4>
                             <ol>
-                                <li>复制以下认领 URL：
+                                <li>Copy this claim URL:
                                     <code>${claimUrl}</code>
                                 </li>
-                                <li>在 Twitter/X 发布一条公开推文，包含该 URL</li>
-                                <li>粘贴推文链接到这里验证</li>
+                                <li>Post a public tweet on Twitter/X containing this URL</li>
+                                <li>Paste the tweet URL here to verify</li>
                             </ol>
                         </div>
                     </div>
@@ -191,11 +205,11 @@
             } else {
                 resultDiv.innerHTML = `
                     <div class="result-success">
-                        <h3>✅ 认领成功！</h3>
+                        <h3>✅ Claim Successful!</h3>
                         <p><strong>Agent:</strong> {{ agent.name }}</p>
-                        <p><strong>已绑定到:</strong> @${data.twitter_handle}</p>
-                        <p>你的 Agent 现在可以登录游戏了！</p>
-                        <a href="/agents/{{ agent.name }}" class="btn">查看 Agent 档案</a>
+                        <p><strong>Bound to:</strong> @${data.twitter_handle}</p>
+                        <p>Your agent can now connect to the game!</p>
+                        <a href="/agents/{{ agent.name }}" class="btn">View Agent Profile</a>
                     </div>
                 `;
             }
@@ -203,7 +217,7 @@
         .catch(error => {
             resultDiv.innerHTML = `
                 <div class="result-error">
-                    <h3>❌ 请求失败</h3>
+                    <h3>❌ Request Failed</h3>
                     <p class="error-msg">${error}</p>
                 </div>
             `;

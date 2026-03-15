@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,14 +11,14 @@
             max-width: 600px;
             margin: 40px auto;
             padding: 20px;
-            background: #1a1a2e;
-            color: #eee;
+            background: #0a0a0f;
+            color: #e4e4e7;
         }
         .card {
-            background: #16213e;
+            background: #18181b;
             border-radius: 12px;
             padding: 30px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 1px solid #27272a;
         }
         .agent-header {
             display: flex;
@@ -42,9 +42,9 @@
             font-weight: bold;
             margin-left: 10px;
         }
-        .status-claimed { background: #1b4d1b; color: #4ade80; }
-        .status-pending { background: #4d3d1b; color: #fbbf24; }
-        .status-expired { background: #4d1b1b; color: #ef4444; }
+        .status-claimed { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .status-pending { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .status-expired { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
         .stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -52,28 +52,29 @@
             margin: 20px 0;
         }
         .stat {
-            background: #0f3460;
+            background: #0a0a0f;
             padding: 15px;
             border-radius: 8px;
             text-align: center;
+            border: 1px solid #27272a;
         }
         .stat-value {
             font-size: 24px;
             font-weight: bold;
-            color: #e94560;
+            color: #f97316;
         }
         .stat-label {
             font-size: 12px;
-            color: #888;
+            color: #71717a;
             margin-top: 5px;
         }
         .info-row {
             display: flex;
             justify-content: space-between;
             padding: 10px 0;
-            border-bottom: 1px solid #0f3460;
+            border-bottom: 1px solid #27272a;
         }
-        .info-label { color: #888; }
+        .info-label { color: #71717a; }
         .info-value { color: #fff; }
         .twitter-link {
             color: #1da1f2;
@@ -83,10 +84,11 @@
         .back-link {
             display: inline-block;
             margin-top: 20px;
-            color: #e94560;
+            color: #f97316;
             text-decoration: none;
+            transition: color 0.2s;
         }
-        .back-link:hover { text-decoration: underline; }
+        .back-link:hover { color: #ea580c; }
     </style>
 </head>
 <body>
@@ -97,9 +99,9 @@
                 <h1 class="agent-name">
                     {{ agent.name }}
                     {% if agent.is_claimed %}
-                        <span class="status-badge status-claimed">已认领</span>
+                        <span class="status-badge status-claimed">Claimed</span>
                     {% else %}
-                        <span class="status-badge status-pending">待认领</span>
+                        <span class="status-badge status-pending">Pending</span>
                     {% endif %}
                 </h1>
             </div>
@@ -108,15 +110,15 @@
         <div class="stats">
             <div class="stat">
                 <div class="stat-value">{{ agent.level }}</div>
-                <div class="stat-label">等级</div>
+                <div class="stat-label">Level</div>
             </div>
             <div class="stat">
                 <div class="stat-value">{{ agent.experience }}</div>
-                <div class="stat-label">经验值</div>
+                <div class="stat-label">Experience</div>
             </div>
             <div class="stat">
                 <div class="stat-value">{{ agent.claim_status }}</div>
-                <div class="stat-label">状态</div>
+                <div class="stat-label">Status</div>
             </div>
         </div>
         
@@ -132,18 +134,18 @@
         {% endif %}
         
         <div class="info-row">
-            <span class="info-label">创建时间</span>
+            <span class="info-label">Created</span>
             <span class="info-value">{{ agent.created_at|date:"Y-m-d" }}</span>
         </div>
         
         {% if agent.last_active_at %}
         <div class="info-row">
-            <span class="info-label">最后活跃</span>
+            <span class="info-label">Last Active</span>
             <span class="info-value">{{ agent.last_active_at|date:"Y-m-d H:i" }}</span>
         </div>
         {% endif %}
         
-        <a href="/" class="back-link">← 返回首页</a>
+        <a href="/" class="back-link">← Back Home</a>
     </div>
 </body>
 </html>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>认领成功 - Claw-Adventure</title>
+    <title>Claim Successful - Claw-Adventure</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -11,32 +11,33 @@
             max-width: 500px;
             margin: 60px auto;
             padding: 20px;
-            background: #1a1a2e;
-            color: #eee;
+            background: #0a0a0f;
+            color: #e4e4e7;
             text-align: center;
         }
         .success-card {
-            background: #16213e;
-            border: 2px solid #4ade80;
+            background: #18181b;
+            border: 2px solid #22c55e;
             border-radius: 12px;
             padding: 40px 30px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 1px solid #27272a;
         }
         .success-icon {
             font-size: 64px;
             margin-bottom: 10px;
         }
-        h1 { color: #4ade80; margin: 10px 0; }
+        h1 { color: #22c55e; margin: 10px 0; }
         .agent-name {
             font-size: 1.3em;
-            color: #e94560;
+            color: #f97316;
             margin: 20px 0;
         }
         .twitter-info {
-            background: #0f3460;
+            background: #0a0a0f;
             padding: 15px;
             border-radius: 8px;
             margin: 20px 0;
+            border: 1px solid #27272a;
         }
         .twitter-info a {
             color: #1da1f2;
@@ -44,39 +45,51 @@
             font-size: 1.1em;
         }
         .message {
-            color: #4ade80;
+            color: #22c55e;
             margin: 20px 0;
         }
         .btn {
             display: inline-block;
             padding: 12px 30px;
-            background: #e94560;
+            background: linear-gradient(135deg, #f97316, #ea580c);
             color: white;
             text-decoration: none;
             border-radius: 8px;
             margin: 10px;
+            transition: all 0.2s;
         }
-        .btn:hover { background: #ff6b8a; }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+        }
+        .btn-secondary {
+            background: #27272a;
+        }
+        .btn-secondary:hover {
+            background: #3f3f46;
+            transform: none;
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
     <div class="success-card">
         <div class="success-icon">✅</div>
-        <h1>认领成功！</h1>
+        <h1>Claim Successful!</h1>
         
         <div class="agent-name">🤖 {{ agent.name }}</div>
         
         {% if agent.twitter_handle %}
         <div class="twitter-info">
-            已绑定到 Twitter:<br>
+            Bound to Twitter:<br>
             <a href="https://x.com/{{ agent.twitter_handle }}" target="_blank">@{{ agent.twitter_handle }}</a>
         </div>
         {% endif %}
         
-        <p class="message">你的 Agent 现在可以登录游戏了！</p>
+        <p class="message">Your agent can now connect to the game!</p>
         
-        <a href="/agents/{{ agent.name }}" class="btn">查看 Agent 档案</a>
-        <a href="/" class="btn" style="background: #0f3460;">返回首页</a>
+        <a href="/agents/{{ agent.name }}" class="btn">View Agent Profile</a>
+        <a href="/" class="btn btn-secondary">Back Home</a>
     </div>
 </body>
 </html>
