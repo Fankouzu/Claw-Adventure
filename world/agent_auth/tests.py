@@ -111,12 +111,19 @@ class AgentAPITest(TestCase):
     
     def setUp(self):
         self.client = Client()
+        # 创建测试邀请码
+        from world.agent_auth.models import InvitationCode
+        self.inv_code = InvitationCode.objects.create(code='INV-TEST12345678')
     
     def test_register_agent_success(self):
         """测试成功注册 Agent"""
         response = self.client.post(
             '/api/agents/register',
-            data=json.dumps({'name': 'APIAgent', 'description': 'Test'}),
+            data=json.dumps({
+                'name': 'APIAgent', 
+                'description': 'Test',
+                'invitation_code': 'INV-TEST12345678'
+            }),
             content_type='application/json'
         )
         
@@ -128,36 +135,121 @@ class AgentAPITest(TestCase):
         self.assertIn('api_key', data)
         self.assertTrue(data['api_key'].startswith('claw_'))
         self.assertIn('claim_url', data)
-        
-    def test_register_agent_duplicate_name(self):
-        """测试重复名称注册"""
-        # 第一次注册
-        self.client.post(
-            '/api/agents/register',
-            data=json.dumps({'name': 'DuplicateAgent'}),
-            content_type='application/json'
-        )
-        
-        # 第二次注册相同名称
-        response = self.client.post(
-            '/api/agents/register',
-            data=json.dumps({'name': 'DuplicateAgent'}),
-            content_type='application/json'
-        )
-        
-        self.assertEqual(response.status_code, 409)
-        self.assertIn('error', response.json())
-        
+    
     def test_register_agent_missing_name(self):
         """测试缺少名称"""
         response = self.client.post(
             '/api/agents/register',
-            data=json.dumps({'description': 'No name'}),
+            data=json.dumps({
+                'description': 'No name',
+                'invitation_code': 'INV-TEST12345678'
+            }),
             content_type='application/json'
         )
         
         self.assertEqual(response.status_code, 400)
-
+        data = response.json()
+        self.assertEqual(data['error'], 'name is required')
+    
+    def test_register_agent_missing_invitation_code(self):
+        """测试缺少邀请码"""
+        response = self.client.post(
+            '/api/agents/register',
+            data=json.dumps({'name': 'NoCode', 'description': 'Test'}),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['error'], 'invitation_code is required')
+    
+    def test_register_agent_invalid_invitation_code(self):
+        """测试无效邀请码"""
+        response = self.client.post(
+            '/api/agents/register',
+            data=json.dumps({
+                'name': 'InvalidCode',
+                'description': 'Test',
+                'invitation_code': 'INV-INVALID12345'
+            }),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['error'], 'Invalid invitation code')
+    
+    def test_register_agent_used_invitation_code(self):
+        """测试已使用的邀请码"""
+        # 先用邀请码注册一次
+        self.client.post(
+            '/api/agents/register',
+            data=json.dumps({
+                'name': 'FirstAgent',
+                'description': 'Test',
+                'invitation_code': 'INV-TEST12345678'
+            }),
+            content_type='application/json'
+        )
+        
+        # 再用相同邀请码注册
+        response = self.client.post(
+            '/api/agents/register',
+            data=json.dumps({
+                'name': 'SecondAgent',
+                'description': 'Test',
+                'invitation_code': 'INV-TEST12345678'
+            }),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['error'], 'Invitation code already used')
+    
+    def test_register_agent_duplicate_name(self):
+        """测试重复名称注册"""
+        # 创建另一个邀请码
+        from world.agent_auth.models import InvitationCode
+        inv_code2 = InvitationCode.objects.create(code='INV-TEST99999999')
+        
+        # 第一次注册
+        self.client.post(
+            '/api/agents/register',
+            data=json.dumps({
+                'name': 'DuplicateAgent',
+                'description': 'Test',
+                'invitation_code': 'INV-TEST12345678'
+            }),
+            content_type='application/json'
+        )
+        
+        # 第二次注册相同名称（用新邀请码）
+        response = self.client.post(
+            '/api/agents/register',
+            data=json.dumps({
+                'name': 'DuplicateAgent',
+                'description': 'Test',
+                'invitation_code': 'INV-TEST99999999'
+            }),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 409)
+        data = response.json()
+        self.assertEqual(data['error'], 'Agent name already exists')
+    
+    def test_register_agent_invalid_json(self):
+        """测试无效 JSON"""
+        response = self.client.post(
+            '/api/agents/register',
+            data='not valid json',
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['error'], 'Invalid JSON')
 
 class ClaimPageTest(TestCase):
     """测试 Claim 页面"""
