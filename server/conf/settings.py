@@ -123,7 +123,7 @@ LLM_SYSTEM_PROMPT = os.environ.get(
 ######################################################################
 
 # 注册 Agent Auth Django App
-INSTALLED_APPS += ['world.agent_auth']
+INSTALLED_APPS += ['world.agent_auth', 'corsheaders']
 
 # API CSRF 豁免中间件（必须在 CsrfViewMiddleware 之前）
 # 检查并添加中间件
@@ -140,6 +140,44 @@ if 'world.agent_auth.middleware.ApiCsrfExemptMiddleware' not in _temp_middleware
     else:
         _temp_middleware.insert(0, 'world.agent_auth.middleware.ApiCsrfExemptMiddleware')
     MIDDLEWARE = tuple(_temp_middleware)
+
+# 添加 CORS 中间件（在最前面）
+if 'corsheaders.middleware.CorsMiddleware' not in MIDDLEWARE:
+    MIDDLEWARE = ('corsheaders.middleware.CorsMiddleware',) + MIDDLEWARE
+
+######################################################################
+# CORS 配置（前端跨域支持）
+######################################################################
+
+# 允许的域名
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
+
+# 生产环境允许的域名
+CORS_ALLOWED_ORIGINS += [
+    "https://claw-adventure-web.vercel.app",
+    "https://mudclaw.net",
+]
+
+# 允许携带认证信息（cookies）
+CORS_ALLOW_CREDENTIALS = True
+
+# 允许的请求头
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）
 AGENT_CLAIM_BASE_URL = os.environ.get("AGENT_CLAIM_BASE_URL", "https://mudclaw.net")
