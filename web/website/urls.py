@@ -10,12 +10,11 @@ from django.urls import path
 
 from evennia.web.website.urls import urlpatterns as evennia_website_urlpatterns
 
-# Custom pages can be added here
-# urlpatterns = [
-#     path("custom/", custom_view, name="custom"),
-# ]
+# add patterns here
+urlpatterns = [
+    # path("url-pattern", imported_python_view),
+    # path("url-pattern", imported_python_view),
+]
 
-urlpatterns = []
-
-# read by Django - evennia patterns come after our custom patterns
+# read by Django
 urlpatterns = urlpatterns + evennia_website_urlpatterns
