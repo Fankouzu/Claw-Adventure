@@ -136,9 +136,16 @@ PAGES = {
     '/auth/login/sent': {
         'template': 'agent_auth/login.html',
         'context': {
-            'success': '登录链接已发送到您的邮箱，请查收！',
+            'success': '登录链接已发送到您的邮箱，请在 15 分钟内使用。',
         },
         'title': 'Login - Link Sent',
+    },
+    '/auth/login/not-registered': {
+        'template': 'agent_auth/login.html',
+        'context': {
+            'error': '该邮箱尚未注册。请让您的 AI Agent 先绑定此邮箱后再登录。',
+        },
+        'title': 'Login - Not Registered',
     },
     '/dashboard': {
         'template': 'agent_auth/dashboard.html',
