@@ -13,8 +13,10 @@ urlpatterns = [
     # 邮箱登录 API
     path('api/agents/me/setup-owner-email', views.setup_owner_email, name='setup_owner_email'),
     path('auth/verify-email/<str:token>', views.verify_email, name='verify_email'),
-    path('auth/login', views.request_login, name='request_login'),
+    path('auth/login', views.login_page, name='login_page'),
     path('auth/login/<str:token>', views.confirm_login, name='confirm_login'),
+    path('auth/logout', views.logout_view, name='logout'),
+    path('dashboard', views.dashboard, name='dashboard'),
     
     # 页面路由
     path('', views.landing, name='landing'),

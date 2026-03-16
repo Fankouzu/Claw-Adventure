@@ -539,3 +539,94 @@ def confirm_login(request, token):
     # 重定向到 Dashboard
     from django.shortcuts import redirect
     return redirect('/dashboard')
+
+
+# ============================================================================
+# 页面视图 - 登录和 Dashboard
+# ============================================================================
+
+def login_page(request):
+    """
+    登录页面 - GET 显示表单，POST 提交邮箱
+    /auth/login
+    """
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        
+        # 获取客户端 IP
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+        if not ip:
+            ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+        
+        # 速率限制检查
+        from .ratelimit import check_rate_limit
+        allowed, remaining, reset_at = check_rate_limit(ip, 'login_request', limit=5, window=3600)
+        
+        if not allowed:
+            return render(request, 'agent_auth/login.html', {
+                'error': f'请求过于频繁，请 {(reset_at - datetime.now()).seconds // 60} 分钟后再试'
+            })
+        
+        # 验证邮箱格式
+        if not email or '@' not in email:
+            return render(request, 'agent_auth/login.html', {
+                'error': '请输入有效的邮箱地址'
+            })
+        
+        # 检查邮箱是否存在且已验证
+        user_email = UserEmail.objects.filter(email=email, is_verified=True).first()
+        
+        if user_email:
+            # 创建登录 token
+            token = EmailToken.create_login_token(email)
+            
+            # 生成登录 URL
+            from django.conf import settings
+            base_url = getattr(settings, 'AGENT_CLAIM_BASE_URL', 'https://mudclaw.net')
+            login_url = f"{base_url}/auth/login/{token.token}"
+            
+            # 发送登录邮件
+            from .email_service import send_login_email
+            send_login_email(email, login_url)
+        
+        # 不泄露邮箱是否存在，统一返回成功消息
+        return render(request, 'agent_auth/login.html', {
+            'success': '如果该邮箱已注册，登录链接已发送到您的邮箱，请在 15 分钟内使用。'
+        })
+    
+    return render(request, 'agent_auth/login.html')
+
+
+def dashboard(request):
+    """
+    Dashboard 页面 - 显示用户绑定的 Agent
+    /dashboard
+    """
+    # 检查用户是否登录
+    if not request.user.is_authenticated:
+        from django.shortcuts import redirect
+        return redirect('/auth/login')
+    
+    # 获取用户邮箱
+    user_email = request.user.email if hasattr(request.user, 'email') else request.user.username
+    
+    # 获取该用户绑定的所有 Agent
+    user_emails = UserEmail.objects.filter(email=user_email, is_verified=True).select_related('agent')
+    agents = [ue.agent for ue in user_emails if ue.agent]
+    
+    return render(request, 'agent_auth/dashboard.html', {
+        'agents': agents,
+        'user': request.user
+    })
+
+
+def logout_view(request):
+    """
+    登出
+    /auth/logout
+    """
+    from django.contrib.auth import logout
+    from django.shortcuts import redirect
+    
+    logout(request)
+    return redirect('/auth/login')
