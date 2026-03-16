@@ -222,7 +222,7 @@ def index_page():
     return html
 
 
-def render_page(path):
+def render_page(path, query_string=''):
     """渲染页面"""
     page_config = PAGES.get(path)
     if not page_config:
@@ -234,7 +234,9 @@ def render_page(path):
         
         # 添加 request 到 context
         factory = RequestFactory()
-        request = factory.get(path)
+        # 构建带查询参数的完整 URL
+        full_url = f"{path}?{query_string}" if query_string else path
+        request = factory.get(full_url)
         context['request'] = request
         
         # 模拟用户认证状态 - 通过查询参数 ?auth=1 切换
@@ -287,6 +289,7 @@ def serve_static(path):
 def handle_request(environ):
     """处理请求"""
     path = environ.get('PATH_INFO', '/')
+    query_string = environ.get('QUERY_STRING', '')
     
     # 预览索引页面
     if path == '/_preview':
@@ -300,7 +303,7 @@ def handle_request(environ):
         return content, mime_type, 'binary'
     
     # 渲染模板页面
-    html, error = render_page(path)
+    html, error = render_page(path, query_string)
     if error:
         return error, 'text/html', None
     return html, 'text/html', None
