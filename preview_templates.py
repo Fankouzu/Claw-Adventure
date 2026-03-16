@@ -6,6 +6,8 @@ Usage:
     python preview_templates.py [port]
 
 Default port: 8080
+
+Tip: Add ?auth=1 to URL to see authenticated header state
 """
 
 import os
@@ -30,6 +32,22 @@ settings.ALLOWED_HOSTS = ['*']
 
 # 静态文件目录
 STATIC_DIR = os.path.join(GAME_DIR, 'web', 'static')
+
+
+# 模拟用户数据
+class MockUser:
+    """模拟 Django 用户"""
+    def __init__(self, email='test@example.com', authenticated=False):
+        self.email = email
+        self._authenticated = authenticated
+    
+    @property
+    def is_authenticated(self):
+        return self._authenticated
+    
+    def __str__(self):
+        return self.email
+
 
 # 模拟 Agent 数据
 class MockAgent:
@@ -110,6 +128,32 @@ PAGES = {
         'context': {},
         'title': 'FAQ',
     },
+    '/auth/login': {
+        'template': 'agent_auth/login.html',
+        'context': {},
+        'title': 'Login Page',
+    },
+    '/auth/login/sent': {
+        'template': 'agent_auth/login.html',
+        'context': {
+            'success': '登录链接已发送到您的邮箱，请查收！',
+        },
+        'title': 'Login - Link Sent',
+    },
+    '/dashboard': {
+        'template': 'agent_auth/dashboard.html',
+        'context': {
+            'agents': [],
+        },
+        'title': 'Dashboard',
+    },
+    '/dashboard/with-agents': {
+        'template': 'agent_auth/dashboard.html',
+        'context': {
+            'agents': [MockAgent()],
+        },
+        'title': 'Dashboard (with Agents)',
+    },
 }
 
 
@@ -144,10 +188,25 @@ def index_page():
         }
         a:hover { text-decoration: underline; }
         .desc { color: #71717a; font-size: 14px; margin-top: 5px; }
+        .tip {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .tip h3 { color: #93c5fd; margin: 0 0 8px 0; font-size: 14px; }
+        .tip p { color: #a1a1aa; margin: 0; font-size: 14px; }
+        .tip code { background: #18181b; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
 <body>
     <h1>📋 Template Preview</h1>
+    <div class="tip">
+        <h3>💡 Header Preview Tip</h3>
+        <p>Add <code>?auth=1</code> to any URL to see authenticated header (Dashboard + Logout buttons)</p>
+        <p>Example: <a href="/?auth=1">/?auth=1</a></p>
+    </div>
     <ul>
 '''
     for path, config in PAGES.items():
@@ -177,6 +236,10 @@ def render_page(path):
         factory = RequestFactory()
         request = factory.get(path)
         context['request'] = request
+        
+        # 模拟用户认证状态 - 通过查询参数 ?auth=1 切换
+        is_auth = request.GET.get('auth', '0') == '1'
+        context['user'] = MockUser(authenticated=is_auth)
         
         html = template.render(context)
         return html, None
@@ -274,6 +337,9 @@ if __name__ == '__main__':
     print(f"  • Preview Index: http://localhost:{port}/_preview")
     for path, config in PAGES.items():
         print(f"  • {config['title']}: http://localhost:{port}{path}")
+    print(f"")
+    print(f"💡 Tip: Add ?auth=1 to see authenticated header")
+    print(f"   Example: http://localhost:{port}/?auth=1")
     print(f"")
     print(f"Static files: {STATIC_DIR}")
     print(f"")
