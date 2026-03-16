@@ -280,8 +280,204 @@ def faq(request):
 
 
 # ============================================================================
-# API Key 认证装饰器
+# 前端 API 端点
 # ============================================================================
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def claim_info_api(request, token):
+    """
+    GET /api/v1/claim/{token}
+    获取认领信息（前端 API）
+    """
+    agent = verify_claim_token(token)
+    
+    if not agent:
+        return JsonResponse({'error': 'Invalid or expired claim token'}, status=400)
+    
+    if agent.is_claimed:
+        return JsonResponse({'error': 'Agent already claimed'}, status=400)
+    
+    if agent.claim_expires_at and agent.claim_expires_at < timezone.now():
+        return JsonResponse({'error': 'Claim link has expired'}, status=400)
+    
+    from django.conf import settings
+    base_url = getattr(settings, 'AGENT_CLAIM_BASE_URL', 'https://mudclaw.net')
+    share_url = f"{base_url}/claim/{token}"
+    
+    return JsonResponse({
+        'agent_id': str(agent.id),
+        'name': agent.name,
+        'claim_token': token,
+        'claim_status': agent.claim_status,
+        'share_url': share_url,
+        'expires_at': agent.claim_expires_at.isoformat() if agent.claim_expires_at else None,
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def claim_verify_api(request, token):
+    """
+    POST /api/v1/claim/{token}/verify
+    验证推文 URL 并认领 Agent（前端 API）
+    """
+    agent = verify_claim_token(token)
+    
+    if not agent:
+        return JsonResponse({'error': 'Invalid claim token'}, status=400)
+    
+    if agent.is_claimed:
+        return JsonResponse({'error': 'Agent already claimed'}, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        tweet_url = data.get('tweet_url', '').strip()
+        
+        if not tweet_url:
+            return JsonResponse({'error': 'Tweet URL is required'}, status=400)
+        
+        # 验证推文 URL 格式
+        if not ('twitter.com' in tweet_url or 'x.com' in tweet_url):
+            return JsonResponse({'error': 'Invalid tweet URL format'}, status=400)
+        
+        # 执行验证和认领流程
+        result = verify_and_claim_agent(agent, tweet_url)
+        
+        if result['success']:
+            return JsonResponse({
+                'status': 'claimed',
+                'message': result['message'],
+                'twitter_handle': agent.twitter_handle,
+                'agent': {
+                    'id': str(agent.id),
+                    'name': agent.name,
+                }
+            })
+        else:
+            return JsonResponse({'error': result.get('error', 'Verification failed')}, status=400)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def auth_login_api(request):
+    """
+    POST /api/v1/auth/login
+    请求登录邮件（前端 API）
+    """
+    try:
+        data = json.loads(request.body)
+        email = data.get('email', '').strip().lower()
+        
+        # 获取客户端 IP
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+        if not ip:
+            ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+        
+        # 速率限制检查
+        from .ratelimit import check_rate_limit
+        allowed, remaining, reset_at = check_rate_limit(ip, 'login_request', limit=5, window=3600)
+        
+        if not allowed:
+            return JsonResponse({
+                'error': 'Too many requests',
+                'retry_after': int((reset_at - datetime.now()).total_seconds())
+            }, status=429)
+        
+        # 验证邮箱格式
+        if not email or '@' not in email:
+            return JsonResponse({'error': 'Invalid email format'}, status=400)
+        
+        # 检查邮箱是否存在且已验证
+        user_email = UserEmail.objects.filter(email=email, is_verified=True).first()
+        
+        if user_email:
+            # 创建登录 token
+            token = EmailToken.create_login_token(email)
+            
+            # 生成登录 URL
+            from django.conf import settings
+            base_url = getattr(settings, 'AGENT_CLAIM_BASE_URL', 'https://mudclaw.net')
+            login_url = f"{base_url}/auth/verify/{token.token}"
+            
+            # 发送登录邮件
+            from .email_service import send_login_email
+            send_login_email(email, login_url)
+            
+            return JsonResponse({'status': 'login_email_sent', 'email': email})
+        else:
+            return JsonResponse({
+                'error': 'Email not registered. Please ask your Agent to bind this email first.'
+            }, status=404)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def agent_profile_by_name_api(request, name):
+    """
+    GET /api/v1/agents/name/{name}/profile
+    按 name 获取 Agent 档案（前端 API）
+    """
+    try:
+        agent = Agent.objects.get(name=name)
+        
+        return JsonResponse({
+            'agent_id': str(agent.id),
+            'name': agent.name,
+            'level': agent.level,
+            'experience': agent.experience,
+            'claim_status': agent.claim_status,
+            'twitter_handle': agent.twitter_handle,
+            'is_claimed': agent.is_claimed,
+            'created_at': agent.created_at.isoformat(),
+            'last_active_at': agent.last_active_at.isoformat() if agent.last_active_at else None,
+        })
+    except Agent.DoesNotExist:
+        return JsonResponse({'error': 'Agent not found'}, status=404)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def dashboard_api(request):
+    """
+    GET /api/v1/dashboard
+    获取 Dashboard 数据（前端 API）
+    
+    注意：此 API 需要 session 认证，前端应通过 cookie 传递 session
+    """
+    authenticated_email = request.session.get('authenticated_email')
+    
+    if not authenticated_email:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+    
+    # 获取该用户绑定的所有 Agent
+    user_emails = UserEmail.objects.filter(email=authenticated_email, is_verified=True).select_related('agent')
+    agents = [ue.agent for ue in user_emails if ue.agent]
+    
+    return JsonResponse({
+        'email': authenticated_email,
+        'agents': [
+            {
+                'id': str(agent.id),
+                'name': agent.name,
+                'level': agent.level,
+                'experience': agent.experience,
+                'claim_status': agent.claim_status,
+                'twitter_handle': agent.twitter_handle,
+            }
+            for agent in agents
+        ]
+    })
 
 def api_key_required(view_func):
     """
