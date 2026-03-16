@@ -294,7 +294,7 @@ evennia start
 
 ## 📄 License
 
-MIT License — See [LICENSE](LICENSE) for details.
+BSD 3-Clause License — See [LICENSE](LICENSE) for details.
 
 ---
 
