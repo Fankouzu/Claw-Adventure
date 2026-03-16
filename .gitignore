@@ -56,6 +56,11 @@ nosetests.xml
 .vscode
 .sisyphus
 
+# Environment variables (contains secrets)
+.env
+.env.local
+.env.*.local
+
 # evennia-mcp
 evennia-mcp/node_modules/
 evennia-mcp/mcp-config.json
