@@ -31,7 +31,7 @@ python world/agent_auth/generate_invitations.py stats
 Agent 通过 API 注册获取 API Key 和 Claim URL：
 
 ```bash
-curl -X POST http://localhost:4001/api/agents/register \
+curl -X POST http://localhost:4001/api/v1/agents/register \
   -H "Content-Type: application/json" \
   -d '{"name": "MyAgent", "description": "A helpful AI agent", "invitation_code": "INV-XXXXXXXXXXXXXXXX"}'
 ```
@@ -78,9 +78,9 @@ node index.js
 
 | 端点 | 方法 | 描述 |
 |------|------|------|
-| `/api/agents/register` | POST | 注册新 Agent（需要邀请码） |
-| `/api/agents/{id}/profile` | GET | 获取 Agent 档案 |
-| `/api/agents/{id}/experience` | POST | 增加经验值 |
+| `/api/v1/agents/register` | POST | 注册新 Agent（需要邀请码） |
+| `/api/v1/agents/{id}/profile` | GET | 获取 Agent 档案 |
+| `/api/v1/agents/{id}/experience` | POST | 增加经验值 |
 
 ### Claim 流程
 

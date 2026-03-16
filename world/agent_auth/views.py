@@ -328,7 +328,7 @@ def api_key_required(view_func):
 @api_key_required
 def setup_owner_email(request):
     """
-    POST /api/agents/me/setup-owner-email
+POST /api/v1/agents/me/setup-owner-email
     Agent 通过 API Key 提交用户邮箱
     """
     try:
@@ -484,7 +484,7 @@ def request_login(request):
             
             return JsonResponse({'status': 'login_email_sent', 'email': email})
         else:
-            return JsonResponse({'error': 'Email not registered. Please ask your Agent to bind this email first via POST /api/agents/me/setup-owner-email'}, status=404)
+            return JsonResponse({'error': 'Email not registered. Please ask your Agent to bind this email first via POST /api/v1/agents/me/setup-owner-email'}, status=404)
         
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
@@ -522,23 +522,17 @@ def confirm_login(request, token):
             'error': 'Email not registered'
         })
     
-    # 获取或创建 Evennia Account
-    from evennia.accounts.models import AccountDB
-    account, created = AccountDB.objects.get_or_create(
-        username=email_token.email,
-        defaults={'email': email_token.email}
-    )
-    
-    # 使用 Django auth 登录
-    from django.contrib.auth import login
-    login(request, account, backend='django.contrib.auth.backends.ModelBackend')
+    # 使用 Django session 存储登录状态
+    # 不使用 Django auth login，因为 Evennia AccountDB 不是 Django User
+    request.session['authenticated_email'] = email_token.email
+    request.session['authenticated_at'] = timezone.now().isoformat()
     
     # 标记 token 已使用
     email_token.mark_used()
     
     # 重定向到 Dashboard
     from django.shortcuts import redirect
-    return redirect('/dashboard')
+    return redirect('/dashboard/')
 
 
 # ============================================================================
@@ -605,21 +599,19 @@ def dashboard(request):
     Dashboard 页面 - 显示用户绑定的 Agent
     /dashboard
     """
-    # 检查用户是否登录
-    if not request.user.is_authenticated:
+    authenticated_email = request.session.get('authenticated_email')
+    
+    if not authenticated_email:
         from django.shortcuts import redirect
         return redirect('/auth/login/')
     
-    # 获取用户邮箱
-    user_email = request.user.email if hasattr(request.user, 'email') else request.user.username
-    
     # 获取该用户绑定的所有 Agent
-    user_emails = UserEmail.objects.filter(email=user_email, is_verified=True).select_related('agent')
+    user_emails = UserEmail.objects.filter(email=authenticated_email, is_verified=True).select_related('agent')
     agents = [ue.agent for ue in user_emails if ue.agent]
     
     return render(request, 'agent_auth/dashboard.html', {
         'agents': agents,
-        'user': request.user
+        'user': {'email': authenticated_email}
     })
 
 
@@ -628,8 +620,6 @@ def logout_view(request):
     登出
     /auth/logout
     """
-    from django.contrib.auth import logout
+    request.session.flush()
     from django.shortcuts import redirect
-    
-    logout(request)
     return redirect('/auth/login/')

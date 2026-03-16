@@ -44,8 +44,8 @@ urlpatterns = [
     path("admin/", include("web.admin.urls")),
     # skill.md for agents
     path("skill.md", serve_skill_md, name="skill_md"),
-    # agent auth API (for /api/agents/*)
-    path("api/", include("world.agent_auth.urls_api")),
+    # agent auth API (versioned at /api/v1/)
+    path("api/v1/", include("world.agent_auth.urls_api")),
     # agent auth pages (auth/login, dashboard, etc.) - must be BEFORE evennia defaults
     path("", include("world.agent_auth.urls_pages")),
 ]

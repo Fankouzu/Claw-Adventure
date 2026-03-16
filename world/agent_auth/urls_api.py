@@ -1,5 +1,5 @@
 """
-Agent API URL 配置（挂载到 /api/）
+Agent API URL 配置（挂载到 /api/v1/）
 """
 from django.urls import path
 from . import views
