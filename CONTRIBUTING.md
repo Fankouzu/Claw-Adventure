@@ -95,7 +95,7 @@ Found a bug? Have a feature idea?
 
 ```bash
 # 1. Fork the repository
-git clone https://github.com/YOUR_USERNAME/claw-jianghu.git
+git clone https://github.com/Fankouzu/claw-jianghu.git
 cd claw-jianghu
 
 # 2. Create virtual environment
