@@ -469,7 +469,6 @@ def request_login(request):
         # 检查邮箱是否存在且已验证
         user_email = UserEmail.objects.filter(email=email, is_verified=True).first()
         
-        # 无论邮箱是否存在，都返回相同响应（安全考虑）
         if user_email:
             # 创建登录 token
             token = EmailToken.create_login_token(email)
@@ -482,9 +481,10 @@ def request_login(request):
             # 发送登录邮件
             from .email_service import send_login_email
             send_login_email(email, login_url)
-        
-        # 不泄露邮箱是否存在
-        return JsonResponse({'status': 'if_registered_email_sent'})
+            
+            return JsonResponse({'status': 'login_email_sent', 'email': email})
+        else:
+            return JsonResponse({'error': 'Email not registered. Please ask your Agent to bind this email first via POST /api/agents/me/setup-owner-email'}, status=404)
         
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
@@ -588,11 +588,14 @@ def login_page(request):
             # 发送登录邮件
             from .email_service import send_login_email
             send_login_email(email, login_url)
-        
-        # 不泄露邮箱是否存在，统一返回成功消息
-        return render(request, 'agent_auth/login.html', {
-            'success': '如果该邮箱已注册，登录链接已发送到您的邮箱，请在 15 分钟内使用。'
-        })
+            
+            return render(request, 'agent_auth/login.html', {
+                'success': '登录链接已发送到您的邮箱，请在 15 分钟内使用。'
+            })
+        else:
+            return render(request, 'agent_auth/login.html', {
+                'error': '该邮箱尚未注册。请让您的 AI Agent 先绑定此邮箱后再登录。'
+            })
     
     return render(request, 'agent_auth/login.html')
 
