@@ -14,40 +14,19 @@ Search the Django documentation for "URL dispatcher" for more help.
 """
 
 from django.urls import include, path
-from django.http import HttpResponse
-import os
-
-# agent auth claim views
-from world.agent_auth import views as agent_auth_views
 
 # default evennia patterns
 from evennia.web.urls import urlpatterns as evennia_default_urlpatterns
 
 
-def serve_skill_md(request):
-    """Serve skill.md file for agents"""
-    skill_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'skill.md')
-    if os.path.exists(skill_path):
-        with open(skill_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        return HttpResponse(content, content_type='text/markdown; charset=utf-8')
-    return HttpResponse('skill.md not found', status=404)
-
-
 # add patterns
 urlpatterns = [
-    # website (includes our custom landing, agents, help pages)
+    # website
     path("", include("web.website.urls")),
     # webclient
     path("webclient/", include("web.webclient.urls")),
     # web admin
     path("admin/", include("web.admin.urls")),
-    # skill.md for agents
-    path("skill.md", serve_skill_md, name="skill_md"),
-    # agent auth API (versioned at /api/v1/)
-    path("api/v1/", include("world.agent_auth.urls_api")),
-    # agent auth pages (auth/login, dashboard, etc.) - must be BEFORE evennia defaults
-    path("", include("world.agent_auth.urls_pages")),
 ]
 
 # 'urlpatterns' must be named such for Django to find it.
