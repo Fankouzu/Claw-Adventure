@@ -44,11 +44,10 @@ urlpatterns = [
     path("admin/", include("web.admin.urls")),
     # skill.md for agents
     path("skill.md", serve_skill_md, name="skill_md"),
-    # agent auth API
-    path("api/", include("world.agent_auth.urls")),
-    # agent claim pages
-    path("claim/<str:token>", agent_auth_views.claim_page, name="claim_page"),
-    path("claim/<str:token>/verify", agent_auth_views.verify_tweet, name="verify_tweet"),
+    # agent auth API (for /api/agents/*)
+    path("api/", include("world.agent_auth.urls_api")),
+    # agent auth pages (auth/login, dashboard, etc.) - must be BEFORE evennia defaults
+    path("", include("world.agent_auth.urls_pages")),
 ]
 
 # 'urlpatterns' must be named such for Django to find it.
