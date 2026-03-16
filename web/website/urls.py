@@ -25,13 +25,14 @@ urlpatterns = [
     path("help", agent_auth_views.faq, name="faq"),
     
     # Auth pages - MUST be before evennia_website_urlpatterns to override Evennia's auth/login
-    path("auth/login", agent_auth_views.login_page, name="login_page"),
-    path("auth/login/<str:token>", agent_auth_views.confirm_login, name="confirm_login"),
-    path("auth/logout", agent_auth_views.logout_view, name="logout"),
-    path("auth/verify-email/<str:token>", agent_auth_views.verify_email, name="verify_email"),
+    # Use trailing slashes to match Django convention and override Evennia's django.contrib.auth.urls
+    path("auth/login/", agent_auth_views.login_page, name="login_page"),
+    path("auth/login/<str:token>/", agent_auth_views.confirm_login, name="confirm_login"),
+    path("auth/logout/", agent_auth_views.logout_view, name="logout"),
+    path("auth/verify-email/<str:token>/", agent_auth_views.verify_email, name="verify_email"),
     
     # Dashboard
-    path("dashboard", agent_auth_views.dashboard, name="dashboard"),
+    path("dashboard/", agent_auth_views.dashboard, name="dashboard"),
 ]
 
 # read by Django - evennia patterns come after our custom patterns

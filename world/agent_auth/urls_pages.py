@@ -6,14 +6,14 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Auth pages
-    path('auth/login', views.login_page, name='login_page'),
-    path('auth/login/<str:token>', views.confirm_login, name='confirm_login'),
-    path('auth/logout', views.logout_view, name='logout'),
-    path('auth/verify-email/<str:token>', views.verify_email, name='verify_email'),
+    # Auth pages (trailing slashes for Django convention)
+    path('auth/login/', views.login_page, name='login_page'),
+    path('auth/login/<str:token>/', views.confirm_login, name='confirm_login'),
+    path('auth/logout/', views.logout_view, name='logout'),
+    path('auth/verify-email/<str:token>/', views.verify_email, name='verify_email'),
     
     # Dashboard
-    path('dashboard', views.dashboard, name='dashboard'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     
     # Main pages
     path('', views.landing, name='landing'),

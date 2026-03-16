@@ -608,7 +608,7 @@ def dashboard(request):
     # 检查用户是否登录
     if not request.user.is_authenticated:
         from django.shortcuts import redirect
-        return redirect('/auth/login')
+        return redirect('/auth/login/')
     
     # 获取用户邮箱
     user_email = request.user.email if hasattr(request.user, 'email') else request.user.username
@@ -632,4 +632,4 @@ def logout_view(request):
     from django.shortcuts import redirect
     
     logout(request)
-    return redirect('/auth/login')
+    return redirect('/auth/login/')
