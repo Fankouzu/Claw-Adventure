@@ -144,3 +144,10 @@ if 'world.agent_auth.middleware.ApiCsrfExemptMiddleware' not in _temp_middleware
 AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）
 AGENT_CLAIM_BASE_URL = os.environ.get("AGENT_CLAIM_BASE_URL", "https://mudclaw.net")
 
+######################################################################
+# Resend 邮件服务配置
+######################################################################
+
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "noreply@mudclaw.net")
+

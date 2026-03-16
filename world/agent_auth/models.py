@@ -410,3 +410,177 @@ class AgentSession(models.Model):
         if self.disconnected_at:
             return (self.disconnected_at - self.connected_at).total_seconds()
         return None
+
+
+class UserEmail(models.Model):
+    """
+    用户邮箱模型 - 与 Agent 1:1 绑定
+    
+    存储已验证的用户邮箱，一个邮箱只能绑定一个 Agent。
+    """
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        help_text="唯一标识符"
+    )
+    
+    email = models.EmailField(
+        unique=True,
+        help_text="用户邮箱地址"
+    )
+    
+    agent = models.OneToOneField(
+        'Agent',
+        on_delete=models.CASCADE,
+        related_name='owner_email',
+        help_text="关联的 Agent (1:1)"
+    )
+    
+    is_verified = models.BooleanField(
+        default=False,
+        help_text="邮箱是否已验证"
+    )
+    
+    verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="验证时间"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'agent_auth_user_emails'
+        verbose_name = 'User Email'
+        verbose_name_plural = 'User Emails'
+    
+    def __str__(self):
+        return f"{self.email} -> {self.agent.name}"
+
+
+class EmailToken(models.Model):
+    """
+    邮箱验证/登录 Token
+    
+    用于邮箱验证和 magic link 登录的一次性 token。
+    """
+    
+    TOKEN_TYPES = [
+        ('verify', 'Verify Email'),
+        ('login', 'Login Link'),
+    ]
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        help_text="验证/登录 token"
+    )
+    
+    email = models.EmailField(
+        help_text="关联的邮箱地址"
+    )
+    
+    token_type = models.CharField(
+        max_length=10,
+        choices=TOKEN_TYPES,
+        help_text="token 类型"
+    )
+    
+    is_used = models.BooleanField(
+        default=False,
+        help_text="是否已使用"
+    )
+    
+    expires_at = models.DateTimeField(
+        help_text="过期时间"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    agent = models.ForeignKey(
+        'Agent',
+        on_delete=models.CASCADE,
+        null=True,
+        related_name='email_tokens',
+        help_text="关联的 Agent"
+    )
+    
+    class Meta:
+        db_table = 'agent_auth_email_tokens'
+        verbose_name = 'Email Token'
+        verbose_name_plural = 'Email Tokens'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.token_type}: {self.email[:20]}..."
+    
+    def is_valid(self):
+        """检查 token 是否有效（未过期且未使用）"""
+        from django.utils import timezone
+        return not self.is_used and self.expires_at > timezone.now()
+    
+    def mark_used(self):
+        """标记 token 为已使用"""
+        self.is_used = True
+        self.save(update_fields=['is_used'])
+    
+    @classmethod
+    def create_verify_token(cls, email, agent):
+        """
+        创建验证 token（24小时过期）
+        
+        Args:
+            email: 邮箱地址
+            agent: 关联的 Agent
+            
+        Returns:
+            EmailToken 实例
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        token = secrets.token_urlsafe(32)
+        expires_at = timezone.now() + timedelta(hours=24)
+        
+        return cls.objects.create(
+            token=token,
+            email=email,
+            token_type='verify',
+            expires_at=expires_at,
+            agent=agent
+        )
+    
+    @classmethod
+    def create_login_token(cls, email):
+        """
+        创建登录 token（15分钟过期）
+        
+        Args:
+            email: 邮箱地址
+            
+        Returns:
+            EmailToken 实例
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        token = secrets.token_urlsafe(32)
+        expires_at = timezone.now() + timedelta(minutes=15)
+        
+        return cls.objects.create(
+            token=token,
+            email=email,
+            token_type='login',
+            expires_at=expires_at,
+            agent=None
+        )

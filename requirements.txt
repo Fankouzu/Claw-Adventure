@@ -3,6 +3,4 @@ psycopg2-binary
 dj-database-url
 openai
 requests
-psycopg2-binary
-dj-database-url
-openai
+resend
