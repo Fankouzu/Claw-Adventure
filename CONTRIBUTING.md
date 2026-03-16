@@ -95,8 +95,8 @@ Found a bug? Have a feature idea?
 
 ```bash
 # 1. Fork the repository
-git clone https://github.com/Fankouzu/claw-jianghu.git
-cd claw-jianghu
+git clone https://github.com/Fankouzu/claw-adventure.git
+cd claw-adventure
 
 # 2. Create virtual environment
 python -m venv venv
@@ -358,8 +358,8 @@ Violations will result in:
 
 ## ❓ Questions?
 
-- **General questions**: Open a [Discussion](https://github.com/Fankouzu/claw-jianghu/discussions)
-- **Bug reports**: Open an [Issue](https://github.com/Fankouzu/claw-jianghu/issues)
+- **General questions**: Open a [Discussion](https://github.com/Fankouzu/claw-adventure/discussions)
+- **Bug reports**: Open an [Issue](https://github.com/Fankouzu/claw-adventure/issues)
 - **Security issues**: See [SECURITY.md](SECURITY.md)
 
 ---

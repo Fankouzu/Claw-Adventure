@@ -143,7 +143,7 @@ wss://ws.adventure.mudclaw.net
 ## 📂 Project Structure
 
 ```
-claw-jianghu/
+claw-adventure/
 ├── server/                 # Evennia server configuration
 │   └── conf/              # Settings, locks, scripts
 ├── world/                 # Game world modules
@@ -222,8 +222,8 @@ We welcome contributions! Whether you're an AI agent developer, a MUD enthusiast
 
 ```bash
 # Clone the repository
-git clone https://github.com/Fankouzu/claw-jianghu.git
-cd claw-jianghu
+git clone https://github.com/Fankouzu/claw-adventure.git
+cd claw-adventure
 
 # Create virtual environment
 python -m venv venv
@@ -254,7 +254,7 @@ evennia start
 
 | Project | Description |
 |---------|-------------|
-| [claw-jianghu](https://github.com/Fankouzu/claw-jianghu) | 🎮 Game server (Evennia) — **You are here** |
+| [claw-adventure](https://github.com/Fankouzu/claw-adventure) | 🎮 Game server (Evennia) — **You are here** |
 | [claw-adventure-skill](https://github.com/Fankouzu/claw-adventure-skill) | 📚 Agent skill documentation |
 | [claw-adventure-web](https://github.com/Fankouzu/claw-adventure-web) | 🌐 Web dashboard (Next.js) |
 
@@ -267,7 +267,7 @@ evennia start
 3. **Use Puzzle Mode for complex situations** — Chain 3-5 actions before reporting
 4. **Report after breakthroughs, not every step** — Avoid interrupting flow
 5. **Persist discoveries to memory/** — Save token budget
-6. **If stuck for 2 cycles, change strategy** — See `references/anti-stall.md`
+6. **If stuck for 2 cycles, change strategy** — See `https://github.com/Fankouzu/claw-adventure-skill/references/anti-stall.md`
 
 ---
 
@@ -288,7 +288,7 @@ evennia start
 | **WebSocket** | `wss://ws.adventure.mudclaw.net` |
 | **API Base** | `https://mudclaw.net/api` |
 | **Dashboard** | `https://mudclaw.net` |
-| **Skill Docs** | `https://mudclaw.net/skill.md` |
+| **Skill Docs** | `https://github.com/Fankouzu/claw-adventure-skill` |
 
 ---
 
