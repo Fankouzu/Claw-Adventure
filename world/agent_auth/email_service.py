@@ -1,5 +1,5 @@
 """
-邮件发送服务 - 使用 Resend API
+Email sending service using Resend API
 """
 import resend
 from django.conf import settings
@@ -8,15 +8,15 @@ from typing import Tuple, Optional
 
 def send_verification_email(email: str, verify_url: str, agent_name: str) -> Tuple[bool, Optional[str]]:
     """
-    发送邮箱验证邮件
+    Send email verification email
     
     Args:
-        email: 收件人邮箱
-        verify_url: 验证链接 URL
-        agent_name: Agent 名称
+        email: Recipient email
+        verify_url: Verification URL
+        agent_name: Agent name
         
     Returns:
-        (success, error_message) - 成功时 error_message 为 None
+        (success, error_message) - error_message is None on success
     """
     if not settings.RESEND_API_KEY:
         return (False, "RESEND_API_KEY not configured")
@@ -27,14 +27,14 @@ def send_verification_email(email: str, verify_url: str, agent_name: str) -> Tup
         resend.Emails.send({
             "from": settings.RESEND_FROM_EMAIL,
             "to": email,
-            "subject": f"验证您的邮箱 - {agent_name} 正在为您设置账户",
+            "subject": f"Verify Your Email - {agent_name} is setting up your account",
             "html": f"""
-<p>您好！</p>
-<p>Agent <strong>{agent_name}</strong> 正在为您设置 Claw Adventure 账户。</p>
-<p>请点击下方链接验证您的邮箱地址：</p>
-<p><a href="{verify_url}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">验证邮箱</a></p>
-<p>此链接将在 24 小时后过期。</p>
-<p>如果您没有请求此验证，请忽略此邮件。</p>
+<p>Hello!</p>
+<p>Your AI agent <strong>{agent_name}</strong> is setting up a Claw Adventure account for you.</p>
+<p>Click the link below to verify your email address:</p>
+<p><a href="{verify_url}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Verify Email</a></p>
+<p>This link will expire in 24 hours.</p>
+<p>If you did not request this verification, please ignore this email.</p>
 """
         })
         return (True, None)
@@ -44,14 +44,14 @@ def send_verification_email(email: str, verify_url: str, agent_name: str) -> Tup
 
 def send_login_email(email: str, login_url: str) -> Tuple[bool, Optional[str]]:
     """
-    发送登录链接邮件
+    Send login link email
     
     Args:
-        email: 收件人邮箱
-        login_url: 登录链接 URL
+        email: Recipient email
+        login_url: Login URL
         
     Returns:
-        (success, error_message) - 成功时 error_message 为 None
+        (success, error_message) - error_message is None on success
     """
     if not settings.RESEND_API_KEY:
         return (False, "RESEND_API_KEY not configured")
@@ -62,13 +62,13 @@ def send_login_email(email: str, login_url: str) -> Tuple[bool, Optional[str]]:
         resend.Emails.send({
             "from": settings.RESEND_FROM_EMAIL,
             "to": email,
-            "subject": "登录 Claw Adventure",
+            "subject": "Login to Claw Adventure",
             "html": f"""
-<p>您好！</p>
-<p>请点击下方链接登录您的账户：</p>
-<p><a href="{login_url}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">登录</a></p>
-<p>此链接将在 15 分钟后过期。</p>
-<p>如果您没有请求此登录链接，请忽略此邮件。</p>
+<p>Hello!</p>
+<p>Click the link below to log in to your account:</p>
+<p><a href="{login_url}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Log In</a></p>
+<p>This link will expire in 15 minutes.</p>
+<p>If you did not request this login link, please ignore this email.</p>
 """
         })
         return (True, None)
@@ -78,14 +78,14 @@ def send_login_email(email: str, login_url: str) -> Tuple[bool, Optional[str]]:
 
 def send_confirmation_email(email: str, agent_name: str) -> Tuple[bool, Optional[str]]:
     """
-    发送邮箱验证成功确认邮件
+    Send email verification success confirmation
     
     Args:
-        email: 收件人邮箱
-        agent_name: Agent 名称
+        email: Recipient email
+        agent_name: Agent name
         
     Returns:
-        (success, error_message) - 成功时 error_message 为 None
+        (success, error_message) - error_message is None on success
     """
     if not settings.RESEND_API_KEY:
         return (False, "RESEND_API_KEY not configured")
@@ -96,11 +96,11 @@ def send_confirmation_email(email: str, agent_name: str) -> Tuple[bool, Optional
         resend.Emails.send({
             "from": settings.RESEND_FROM_EMAIL,
             "to": email,
-            "subject": "邮箱验证成功",
+            "subject": "Email Verified Successfully",
             "html": f"""
-<p>您好！</p>
-<p>您的邮箱已成功绑定到 Agent <strong>{agent_name}</strong>。</p>
-<p>您现在可以登录了！</p>
+<p>Hello!</p>
+<p>Your email has been successfully bound to Agent <strong>{agent_name}</strong>.</p>
+<p>You can now log in!</p>
 """
         })
         return (True, None)
