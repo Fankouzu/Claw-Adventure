@@ -7,7 +7,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 import json
-from .models import Agent, InvitationCode
+from .models import Agent, InvitationCode, UserEmail, EmailToken
+from datetime import datetime
 from .auth import verify_claim_token
 from .twitter_verify import verify_and_claim_agent
 
@@ -276,3 +277,265 @@ def faq(request):
     /help
     """
     return render(request, 'agent_auth/faq.html')
+
+
+# ============================================================================
+# API Key 认证装饰器
+# ============================================================================
+
+def api_key_required(view_func):
+    """
+    API Key 认证装饰器
+    从 Authorization: Bearer {api_key} 提取并验证 API Key
+    """
+    from functools import wraps
+    
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        # 提取 Authorization header
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        
+        if not auth_header.startswith('Bearer '):
+            return JsonResponse({'error': 'Missing or invalid Authorization header'}, status=401)
+        
+        api_key = auth_header[7:]  # Remove 'Bearer ' prefix
+        
+        # 通过 prefix 查找可能的 Agent
+        prefix = api_key[:20] if len(api_key) >= 20 else api_key
+        candidates = Agent.objects.filter(api_key_prefix=prefix)
+        
+        agent = None
+        for candidate in candidates:
+            if candidate.verify_api_key(api_key):
+                agent = candidate
+                break
+        
+        if not agent:
+            return JsonResponse({'error': 'Invalid API key'}, status=401)
+        
+        request.agent = agent
+        return view_func(request, *args, **kwargs)
+    
+    return wrapper
+
+
+# ============================================================================
+# 邮箱登录 API 端点
+# ============================================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@api_key_required
+def setup_owner_email(request):
+    """
+    POST /api/agents/me/setup-owner-email
+    Agent 通过 API Key 提交用户邮箱
+    """
+    try:
+        data = json.loads(request.body)
+        email = data.get('email', '').strip().lower()
+        
+        # 验证邮箱格式
+        if not email or '@' not in email:
+            return JsonResponse({'error': 'Invalid email format'}, status=400)
+        
+        agent = request.agent
+        
+        # 检查 Agent 是否已认领
+        if agent.claim_status != Agent.ClaimStatus.CLAIMED:
+            return JsonResponse({'error': 'Agent must be claimed first'}, status=403)
+        
+        # 检查邮箱是否已被绑定
+        if UserEmail.objects.filter(email=email).exists():
+            return JsonResponse({'error': 'Email already bound to another agent'}, status=409)
+        
+        # 检查是否已有待处理的验证
+        existing_token = EmailToken.objects.filter(
+            email=email, 
+            token_type='verify', 
+            is_used=False,
+            expires_at__gt=timezone.now()
+        ).first()
+        
+        if existing_token:
+            return JsonResponse({'error': 'Verification already pending, check your email'}, status=400)
+        
+        # 创建验证 token
+        token = EmailToken.create_verify_token(email, agent)
+        
+        # 生成验证 URL
+        from django.conf import settings
+        base_url = getattr(settings, 'AGENT_CLAIM_BASE_URL', 'https://mudclaw.net')
+        verify_url = f"{base_url}/auth/verify-email/{token.token}"
+        
+        # 发送验证邮件
+        from .email_service import send_verification_email
+        success, error = send_verification_email(email, verify_url, agent.name)
+        
+        if not success:
+            return JsonResponse({'error': f'Failed to send email: {error}'}, status=500)
+        
+        return JsonResponse({
+            'status': 'verification_email_sent',
+            'email': email
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def verify_email(request, token):
+    """
+    GET /auth/verify-email/{token}
+    用户点击验证链接
+    """
+    # 查找 token
+    email_token = EmailToken.objects.filter(
+        token=token,
+        token_type='verify'
+    ).first()
+    
+    if not email_token:
+        return render(request, 'agent_auth/claim_error.html', {
+            'error': 'Invalid verification link'
+        })
+    
+    if not email_token.is_valid():
+        return render(request, 'agent_auth/claim_error.html', {
+            'error': 'Verification link expired or already used'
+        })
+    
+    # 检查邮箱是否已被其他 Agent 绑定
+    if UserEmail.objects.filter(email=email_token.email).exists():
+        email_token.mark_used()
+        return render(request, 'agent_auth/claim_error.html', {
+            'error': 'Email already verified by another agent'
+        })
+    
+    # 创建 UserEmail 记录
+    user_email = UserEmail.objects.create(
+        email=email_token.email,
+        agent=email_token.agent,
+        is_verified=True,
+        verified_at=timezone.now()
+    )
+    
+    # 标记 token 已使用
+    email_token.mark_used()
+    
+    # 发送确认邮件
+    from .email_service import send_confirmation_email
+    send_confirmation_email(email_token.email, email_token.agent.name)
+    
+    return render(request, 'agent_auth/email_verified.html', {
+        'agent': email_token.agent,
+        'email': email_token.email
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def request_login(request):
+    """
+    POST /auth/login
+    用户请求登录链接
+    """
+    try:
+        data = json.loads(request.body)
+        email = data.get('email', '').strip().lower()
+        
+        # 获取客户端 IP
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+        if not ip:
+            ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+        
+        # 速率限制检查
+        from .ratelimit import check_rate_limit
+        allowed, remaining, reset_at = check_rate_limit(ip, 'login_request', limit=5, window=3600)
+        
+        if not allowed:
+            return JsonResponse({
+                'error': 'Too many requests',
+                'retry_after': int((reset_at - datetime.now()).total_seconds())
+            }, status=429)
+        
+        # 验证邮箱格式
+        if not email or '@' not in email:
+            return JsonResponse({'error': 'Invalid email format'}, status=400)
+        
+        # 检查邮箱是否存在且已验证
+        user_email = UserEmail.objects.filter(email=email, is_verified=True).first()
+        
+        # 无论邮箱是否存在，都返回相同响应（安全考虑）
+        if user_email:
+            # 创建登录 token
+            token = EmailToken.create_login_token(email)
+            
+            # 生成登录 URL
+            from django.conf import settings
+            base_url = getattr(settings, 'AGENT_CLAIM_BASE_URL', 'https://mudclaw.net')
+            login_url = f"{base_url}/auth/login/{token.token}"
+            
+            # 发送登录邮件
+            from .email_service import send_login_email
+            send_login_email(email, login_url)
+        
+        # 不泄露邮箱是否存在
+        return JsonResponse({'status': 'if_registered_email_sent'})
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def confirm_login(request, token):
+    """
+    GET /auth/login/{token}
+    用户点击登录链接，创建 Session
+    """
+    # 查找 token
+    email_token = EmailToken.objects.filter(
+        token=token,
+        token_type='login'
+    ).first()
+    
+    if not email_token:
+        return render(request, 'agent_auth/claim_error.html', {
+            'error': 'Invalid login link'
+        })
+    
+    if not email_token.is_valid():
+        return render(request, 'agent_auth/claim_error.html', {
+            'error': 'Login link expired or already used'
+        })
+    
+    # 查找关联的 UserEmail
+    user_email = UserEmail.objects.filter(email=email_token.email, is_verified=True).first()
+    
+    if not user_email:
+        return render(request, 'agent_auth/claim_error.html', {
+            'error': 'Email not registered'
+        })
+    
+    # 获取或创建 Evennia Account
+    from evennia.accounts.models import AccountDB
+    account, created = AccountDB.objects.get_or_create(
+        username=email_token.email,
+        defaults={'email': email_token.email}
+    )
+    
+    # 使用 Django auth 登录
+    from django.contrib.auth import login
+    login(request, account, backend='django.contrib.auth.backends.ModelBackend')
+    
+    # 标记 token 已使用
+    email_token.mark_used()
+    
+    # 重定向到 Dashboard
+    from django.shortcuts import redirect
+    return redirect('/dashboard')

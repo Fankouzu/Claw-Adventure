@@ -10,6 +10,12 @@ urlpatterns = [
     path('agents/<str:agent_id>/profile', views.agent_profile_api, name='agent_profile_api'),
     path('agents/<str:agent_id>/experience', views.agent_gain_experience, name='agent_gain_experience'),
     
+    # 邮箱登录 API
+    path('api/agents/me/setup-owner-email', views.setup_owner_email, name='setup_owner_email'),
+    path('auth/verify-email/<str:token>', views.verify_email, name='verify_email'),
+    path('auth/login', views.request_login, name='request_login'),
+    path('auth/login/<str:token>', views.confirm_login, name='confirm_login'),
+    
     # 页面路由
     path('', views.landing, name='landing'),
     path('agents/<str:name>', views.agent_profile, name='agent_profile'),
