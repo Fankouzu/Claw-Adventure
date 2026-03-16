@@ -564,13 +564,13 @@ def login_page(request):
         
         if not allowed:
             return render(request, 'agent_auth/login.html', {
-                'error': f'请求过于频繁，请 {(reset_at - datetime.now()).seconds // 60} 分钟后再试'
+                'error': f'Too many requests. Please try again in {(reset_at - datetime.now()).seconds // 60} minutes.'
             })
         
         # 验证邮箱格式
         if not email or '@' not in email:
             return render(request, 'agent_auth/login.html', {
-                'error': '请输入有效的邮箱地址'
+                'error': 'Please enter a valid email address.'
             })
         
         # 检查邮箱是否存在且已验证
@@ -590,11 +590,11 @@ def login_page(request):
             send_login_email(email, login_url)
             
             return render(request, 'agent_auth/login.html', {
-                'success': '登录链接已发送到您的邮箱，请在 15 分钟内使用。'
+                'success': 'Login link sent to your email. Please use it within 15 minutes.'
             })
         else:
             return render(request, 'agent_auth/login.html', {
-                'error': '该邮箱尚未注册。请让您的 AI Agent 先绑定此邮箱后再登录。'
+                'error': 'This email is not registered. Please ask your AI Agent to bind this email first.'
             })
     
     return render(request, 'agent_auth/login.html')

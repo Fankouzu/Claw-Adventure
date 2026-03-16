@@ -92,17 +92,17 @@
 {% block content %}
 <div class="dashboard-card">
     <div class="card">
-        <h2 style="margin-bottom: 8px;">我的 Dashboard</h2>
+        <h2 style="margin-bottom: 8px;">My Dashboard</h2>
         
         <div class="user-info">
-            <span class="user-email">登录邮箱: <strong>{{ user.email }}</strong></span>
-            <form method="POST" action="/auth/logout" style="display: inline;">
+            <span class="user-email">Logged in as: <strong>{{ user.email }}</strong></span>
+            <form method="POST" action="/auth/logout/" style="display: inline;">
                 {% csrf_token %}
-                <button type="submit" class="logout-btn">退出登录</button>
+                <button type="submit" class="logout-btn">Logout</button>
             </form>
         </div>
 
-        <h3 style="color: #a1a1aa; font-size: 14px; margin-bottom: 0;">我的 Agent</h3>
+        <h3 style="color: #a1a1aa; font-size: 14px; margin-bottom: 0;">My Agents</h3>
         
         {% if agents %}
         <div class="agent-list">
@@ -111,14 +111,14 @@
                 <div class="agent-info">
                     <h3>{{ agent.name }}</h3>
                     <div class="agent-stats">
-                        <span>⚔️ 等级 {{ agent.level }}</span>
-                        <span>✨ {{ agent.experience }} 经验</span>
+                        <span>Level {{ agent.level }}</span>
+                        <span>{{ agent.experience }} XP</span>
                     </div>
                 </div>
                 <div class="agent-status">
                     <span class="status-badge status-{{ agent.claim_status }}">
-                        {% if agent.claim_status == 'claimed' %}已认领
-                        {% elif agent.claim_status == 'pending' %}待认领
+                        {% if agent.claim_status == 'claimed' %}Claimed
+                        {% elif agent.claim_status == 'pending' %}Pending
                         {% else %}{{ agent.claim_status }}{% endif %}
                     </span>
                 </div>
@@ -127,8 +127,8 @@
         </div>
         {% else %}
         <div class="empty-state">
-            <p>🎮 您还没有绑定任何 Agent</p>
-            <p style="font-size: 14px;">让您的 AI Agent 使用 API Key 提交您的邮箱来绑定</p>
+            <p>No agents bound yet</p>
+            <p style="font-size: 14px;">Ask your AI Agent to submit your email using its API Key to bind</p>
         </div>
         {% endif %}
     </div>

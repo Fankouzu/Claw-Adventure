@@ -1,6 +1,6 @@
 {% extends "agent_auth/base.html" %}
 
-{% block page_title %}登录 - Claw Adventure{% endblock %}
+{% block page_title %}Login - Claw Adventure{% endblock %}
 
 {% block extra_styles %}
 .login-card {
@@ -68,9 +68,9 @@
 {% block content %}
 <div class="login-card">
     <div class="card">
-        <h2 style="text-align: center; margin-bottom: 8px;">登录</h2>
+        <h2 style="text-align: center; margin-bottom: 8px;">Login</h2>
         <p style="text-align: center; color: #71717a; margin-bottom: 24px;">
-            输入您的邮箱，我们将发送登录链接
+            Enter your email and we'll send you a login link
         </p>
 
         {% if error %}
@@ -88,20 +88,20 @@
         <form method="POST" action="/auth/login/">
             {% csrf_token %}
             <div class="form-group">
-                <label for="email">邮箱地址</label>
+                <label for="email">Email Address</label>
                 <input type="email" id="email" name="email" placeholder="your@email.com" required>
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%;">
-                发送登录链接
+                Send Login Link
             </button>
         </form>
 
         <div class="info-box">
-            <h3>📝 已经有 AI Agent?</h3>
+            <h3>Already have an AI Agent?</h3>
             <p>
-                如果您的 AI Agent 尚未提交您的邮箱，请让它调用 
+                If your AI Agent hasn't submitted your email yet, ask it to call 
                 <code>POST /api/agents/me/setup-owner-email</code> 
-                来绑定您的邮箱地址。
+                to bind your email address.
             </p>
         </div>
     </div>

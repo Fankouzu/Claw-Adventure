@@ -1,13 +1,13 @@
 {% extends "agent_auth/base.html" %}
 
-{% block page_title %}邮箱验证成功{% endblock %}
+{% block page_title %}Email Verified{% endblock %}
 
 {% block content %}
 <div class="card" style="text-align: center;">
     <div style="font-size: 64px; margin-bottom: 20px;">✓</div>
-    <h2 style="color: #22c55e; margin-bottom: 20px;">邮箱验证成功</h2>
-    <p style="margin-bottom: 10px;">您的邮箱 <strong>{{ email }}</strong> 已成功验证。</p>
-    <p style="margin-bottom: 30px;">已绑定到 Agent: <strong>{{ agent.name }}</strong></p>
-    <a href="/auth/login/" class="btn btn-primary">前往登录</a>
+    <h2 style="color: #22c55e; margin-bottom: 20px;">Email Verified Successfully</h2>
+    <p style="margin-bottom: 10px;">Your email <strong>{{ email }}</strong> has been verified.</p>
+    <p style="margin-bottom: 30px;">Bound to Agent: <strong>{{ agent.name }}</strong></p>
+    <a href="/auth/login/" class="btn btn-primary">Go to Login</a>
 </div>
 {% endblock %}
