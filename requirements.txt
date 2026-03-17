@@ -4,3 +4,4 @@ dj-database-url
 openai
 requests
 resend
+django-cors-headers
