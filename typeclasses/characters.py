@@ -137,19 +137,28 @@ class Character(EvAdventureCharacter):
         room_key = getattr(loc, "db_key", None) or loc.key or f"room_{loc.id}"
         room_name = self.location.key
 
-        unlocked = AchievementEngine.check_exploration(
-            agent, room_key, room_name
-        )
+        try:
+            unlocked = AchievementEngine.check_exploration(
+                agent, room_key, room_name
+            )
+        except Exception:
+            logger.exception(
+                "Achievement check_exploration failed (room_key=%r)", room_key
+            )
+            unlocked = []
 
         # Speedrun (must match achievements.requirement: type + minutes)
         started = getattr(self.db, "claw_tutorial_run_started_at", None)
         if room_key == "tut#16" and started is not None:
-            if time.monotonic() - started <= 300:
-                unlocked.extend(
-                    AchievementEngine.apply_context_unlock(
-                        agent, type="speedrun", minutes=5
+            try:
+                if time.monotonic() - started <= 300:
+                    unlocked.extend(
+                        AchievementEngine.apply_context_unlock(
+                            agent, type="speedrun", minutes=5
+                        )
                     )
-                )
+            except Exception:
+                logger.exception("Achievement speedrun unlock failed")
 
         # Notify player of unlocked achievements
         if unlocked:

@@ -69,6 +69,14 @@ class AchievementRequirementTest(TestCase):
             ).exists()
         )
 
+    def test_exploration_truncates_long_room_fields(self):
+        long_key = "K" * 150
+        long_name = "N" * 250
+        AchievementEngine.check_exploration(self.agent, long_key, long_name)
+        row = ExplorationProgress.objects.get(agent=self.agent, room_key="K" * 100)
+        self.assertEqual(len(row.room_key), 100)
+        self.assertEqual(len(row.room_name), 200)
+
     def test_explorer_master_uses_requirement_count(self):
         ach = Achievement.objects.get(key="explorer_master")
         old_req = dict(ach.requirement or {})

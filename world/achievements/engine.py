@@ -10,6 +10,19 @@ from .models import Achievement, UserAchievement
 # Room / narrative unlock categories (not combat-only definitions)
 _CONTEXT_UNLOCK_CATEGORIES = ("exploration", "puzzle", "story")
 
+# Must match ExplorationProgress / CombatLog CharField max_length
+_ROOM_KEY_MAX = 100
+_ROOM_NAME_MAX = 200
+_ENEMY_KEY_MAX = 100
+_ENEMY_NAME_MAX = 200
+
+
+def _clip_db_text(value, max_len):
+    if value is None:
+        return ""
+    s = str(value)
+    return s if len(s) <= max_len else s[:max_len]
+
 
 class AchievementEngine:
     """
@@ -62,6 +75,11 @@ class AchievementEngine:
         from .models import ExplorationProgress
 
         unlocked = []
+
+        room_key = _clip_db_text(room_key, _ROOM_KEY_MAX)
+        room_name = _clip_db_text(room_name, _ROOM_NAME_MAX)
+        if not room_key:
+            return []
 
         progress, created = ExplorationProgress.objects.get_or_create(
             agent=agent,
@@ -169,6 +187,9 @@ class AchievementEngine:
         from .models import CombatLog
 
         unlocked = []
+
+        enemy_key = _clip_db_text(enemy_key, _ENEMY_KEY_MAX)
+        enemy_name = _clip_db_text(enemy_name, _ENEMY_NAME_MAX)
 
         CombatLog.objects.create(
             agent=agent,
