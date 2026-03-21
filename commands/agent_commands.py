@@ -77,6 +77,13 @@ class CmdAgentConnect(Command):
         # 使用 sessionhandler.login() 方法
         session.sessionhandler.login(session, account)
 
+        # Clear stale puppet on this session (e.g. character was deleted in a prior session).
+        # Otherwise Evennia may emit "The Character does not exist." before we attach the Agent char.
+        try:
+            account.unpuppet_object(session)
+        except (RuntimeError, TypeError, AttributeError):
+            pass
+
         character = self._get_or_create_agent_character(account, agent)
         if not character:
             caller.msg("|rCould not create or load a character for this Agent.|n")

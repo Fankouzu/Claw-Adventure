@@ -28,16 +28,21 @@ import time
 
 
 def _format_server_message(data) -> str:
-    if isinstance(data, list) and len(data) >= 2 and data[0] == "text":
-        body = data[1]
-        if isinstance(body, list):
-            return "".join(str(x) for x in body)
-        return str(body)
+    if isinstance(data, list) and data:
+        if data[0] == "logged_in":
+            return ""
+        if len(data) >= 2 and data[0] == "text":
+            body = data[1]
+            if isinstance(body, list):
+                return "".join(str(x) for x in body)
+            return str(body)
     if isinstance(data, dict):
         t = data.get("type")
         if t in ("auth_challenge", "auth_result"):
             return ""
         return json.dumps(data, ensure_ascii=False)
+    if isinstance(data, list):
+        return ""
     return json.dumps(data, ensure_ascii=False)
 
 
@@ -58,6 +63,53 @@ def _looks_like_cmd_failure(text: str) -> bool:
         if pat.search(text):
             return True
     return False
+
+
+_CHAR_KEY_RE = re.compile(
+    r"connected to the Adventure as\s*(?:<[^>]+>)*\s*([\w\-_]+)",
+    re.I,
+)
+
+
+def _parse_character_key(banner: str) -> str | None:
+    m = _CHAR_KEY_RE.search(banner.replace("\n", " "))
+    return m.group(1) if m else None
+
+
+async def _recover_if_needed(
+    ws,
+    text: str,
+    char_key: str | None,
+    *,
+    quiet_after: float,
+    step_timeout: float,
+    verbose: bool,
+) -> str:
+    """Cancel accidental chardelete prompt; re-puppet after OOC (e.g. character destroyed)."""
+    low = text.lower()
+    out = text
+    if "permanently destroy" in low and "continue yes" in low:
+        if verbose:
+            print("[recover] sending no to cancel chardelete prompt", flush=True)
+        await _send_cmd(ws, "no")
+        out += await _collect_burst(
+            ws,
+            quiet_after_last=quiet_after,
+            max_seconds=min(20.0, step_timeout),
+            verbose=verbose,
+        )
+        low = out.lower()
+    if char_key and "out-of-character (ooc)" in low:
+        if verbose:
+            print(f"[recover] sending ic {char_key}", flush=True)
+        await _send_cmd(ws, f"ic {char_key}")
+        out += await _collect_burst(
+            ws,
+            quiet_after_last=quiet_after,
+            max_seconds=min(20.0, step_timeout),
+            verbose=verbose,
+        )
+    return out
 
 
 async def _drain_initial_evennia(ws, max_seconds: float, verbose: bool) -> None:
@@ -138,24 +190,26 @@ def _steps_help() -> list[tuple[str, dict]]:
     ]
 
 
-def _steps_basics() -> list[tuple[str, dict]]:
-    return [
+def _steps_basics(include_score: bool) -> list[tuple[str, dict]]:
+    steps: list[tuple[str, dict]] = [
         ("look", {}),
         ("inventory", {}),
         ("i", {}),
-        ("score", {}),
-        ("who", {}),
     ]
+    if include_score:
+        steps.append(("score", {}))
+    steps.append(("who", {}))
+    return steps
 
 
-def _build_steps(phase: str) -> list[tuple[str, dict]]:
+def _build_steps(phase: str, *, include_score: bool) -> list[tuple[str, dict]]:
     if phase == "help":
         return _steps_help()
     if phase == "basics":
-        return _steps_basics()
+        return _steps_basics(include_score)
     if phase == "tutorial":
         return _steps_tutorial_path()
-    return _steps_help() + _steps_basics() + _steps_tutorial_path()
+    return _steps_help() + _steps_basics(include_score) + _steps_tutorial_path()
 
 
 def _steps_tutorial_path() -> list[tuple[str, dict]]:
@@ -187,7 +241,8 @@ async def run_walkthrough(args: argparse.Namespace) -> int:
 
     url = args.url
     api_key = args.api_key
-    steps = _build_steps(args.phase)
+    steps = _build_steps(args.phase, include_score=args.with_score)
+    char_key = None
 
     failures = 0
     async with websockets.connect(
@@ -198,8 +253,11 @@ async def run_walkthrough(args: argparse.Namespace) -> int:
         await _drain_initial_evennia(ws, args.drain_seconds, args.verbose)
         await _send_cmd(ws, f"agent_connect {api_key}")
         banner = await _collect_burst(ws, verbose=args.verbose, max_seconds=12.0)
+        char_key = _parse_character_key(banner)
         if args.verbose:
             print(f"[after agent_connect]\n{banner[:2000]}\n---", flush=True)
+        if char_key and args.verbose:
+            print(f"[parsed character key: {char_key!r}]", flush=True)
 
         idle_task = None
         if args.idle_every and args.idle_every > 0:
@@ -216,6 +274,14 @@ async def run_walkthrough(args: argparse.Namespace) -> int:
                     ws,
                     quiet_after_last=qa,
                     max_seconds=args.step_timeout,
+                    verbose=args.verbose,
+                )
+                text = await _recover_if_needed(
+                    ws,
+                    text,
+                    char_key,
+                    quiet_after=args.quiet_after,
+                    step_timeout=args.step_timeout,
                     verbose=args.verbose,
                 )
                 if not text.strip():
@@ -267,6 +333,11 @@ def main() -> int:
     )
     p.add_argument("--verbose", "-v", action="store_true")
     p.add_argument("--print-ok", action="store_true", help="Print one line per successful command")
+    p.add_argument(
+        "--with-score",
+        action="store_true",
+        help="Include 'score' in basics (omitted by default; not in default CharacterCmdSet on this game)",
+    )
     args = p.parse_args()
     if not args.api_key:
         print("Set --api-key or CLAW_API_KEY", file=sys.stderr)
