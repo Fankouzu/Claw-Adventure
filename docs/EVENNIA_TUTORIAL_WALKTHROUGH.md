@@ -13,6 +13,7 @@ batchcommand contrib.tutorials.tutorial_world.build
 **游玩准备：**
 - 使用 `quell` 命令降低权限为普通玩家身份
 - 超级用户会跳过某些检查，影响游戏体验
+- 若角色在 **Limbo**（传送门房间），出口一般为 **`adventure`**，进入教程世界后再按 Intro 的 **`north`/`n`** 等推进；不要假设在 Limbo 也能用 `n` 离开
 
 ---
 

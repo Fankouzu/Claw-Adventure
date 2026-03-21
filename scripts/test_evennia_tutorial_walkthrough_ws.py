@@ -88,6 +88,15 @@ def _banner_shows_shared_puppet(banner: str) -> bool:
 
 
 _NOPE_CMD_FAIL_RE = re.compile(r"command\s+['\"]nope['\"]", re.I)
+# Game-state OOC only — do not match "help ooc" prose containing "out-of-character".
+_ACTUAL_OOC_RE = re.compile(
+    r"you are out-of-character\b|you go ooc\b|you are already ooc\b",
+    re.I,
+)
+
+
+def _burst_suggests_player_is_ooc(low: str) -> bool:
+    return bool(_ACTUAL_OOC_RE.search(low))
 
 
 async def _recover_if_needed(
@@ -172,8 +181,7 @@ async def _recover_if_needed(
         alive_key
         and (
             delete_cancelled
-            or "out-of-character (ooc)" in low
-            or "you go ooc" in low
+            or _burst_suggests_player_is_ooc(low)
         )
     )
     if need_ic:
@@ -286,34 +294,50 @@ def _steps_basics(include_score: bool) -> list[tuple[str, dict]]:
     return steps
 
 
-def _build_steps(phase: str, *, include_score: bool) -> list[tuple[str, dict]]:
+def _build_steps(
+    phase: str, *, include_score: bool, no_limbo_adventure: bool
+) -> list[tuple[str, dict]]:
     if phase == "help":
         return _steps_help()
     if phase == "basics":
         return _steps_basics(include_score)
     if phase == "tutorial":
-        return _steps_tutorial_path()
-    return _steps_help() + _steps_basics(include_score) + _steps_tutorial_path()
+        return _steps_tutorial_path(skip_limbo_adventure=no_limbo_adventure)
+    return (
+        _steps_help()
+        + _steps_basics(include_score)
+        + _steps_tutorial_path(skip_limbo_adventure=no_limbo_adventure)
+    )
 
 
-def _steps_tutorial_path() -> list[tuple[str, dict]]:
+def _steps_tutorial_path(*, skip_limbo_adventure: bool) -> list[tuple[str, dict]]:
     """
     Linear path from EVENNIA_TUTORIAL_WALKTHROUGH.md (best-effort).
-    Fails softly if the character is not at tutorial start.
+
+    Agent characters often start in Limbo; the portal exit is usually ``adventure``,
+    not ``n``. Skip that step with --no-limbo-adventure if already in the tutorial.
     """
-    return [
-        ("look", {}),
-        ("n", {"note": "Intro -> Cliff"}),
-        ("look", {}),
-        ("climb tree", {}),
-        ("look", {}),
-        ("n", {"note": "Cliff -> Bridge — send quickly"}),
-        ("n", {"note": "Bridge crossing (second n if room is wide)"}),
-        ("look", {}),
-        ("search", {"quiet_after_last": 2.0}),
-        ("feel", {}),
-        ("feel around", {}),
-    ]
+    steps: list[tuple[str, dict]] = [("look", {})]
+    if not skip_limbo_adventure:
+        steps.append(
+            ("adventure", {"note": "Limbo -> tutorial Intro"}),
+        )
+    steps.extend(
+        [
+            ("look", {}),
+            ("n", {"note": "Intro -> Cliff"}),
+            ("look", {}),
+            ("climb tree", {}),
+            ("look", {}),
+            ("n", {"note": "Cliff -> Bridge — send quickly"}),
+            ("n", {"note": "Bridge crossing (second n if room is wide)"}),
+            ("look", {}),
+            ("search", {"quiet_after_last": 2.0}),
+            ("feel", {}),
+            ("feel around", {}),
+        ]
+    )
+    return steps
 
 
 async def run_walkthrough(args: argparse.Namespace) -> int:
@@ -325,7 +349,11 @@ async def run_walkthrough(args: argparse.Namespace) -> int:
 
     url = args.url
     api_key = args.api_key
-    steps = _build_steps(args.phase, include_score=args.with_score)
+    steps = _build_steps(
+        args.phase,
+        include_score=args.with_score,
+        no_limbo_adventure=args.no_limbo_adventure,
+    )
     char_key = None
 
     failures = 0
@@ -447,6 +475,11 @@ def main() -> int:
         "--strict-single-session",
         action="store_true",
         help="Exit with code 3 if agent_connect banner shows shared puppet (multisession)",
+    )
+    p.add_argument(
+        "--no-limbo-adventure",
+        action="store_true",
+        help="Omit 'adventure' step (use when character is already in tutorial, not Limbo)",
     )
     args = p.parse_args()
     if not args.api_key:
