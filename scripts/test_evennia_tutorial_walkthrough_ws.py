@@ -15,6 +15,7 @@ Examples:
   python scripts/test_evennia_tutorial_walkthrough_ws.py --verbose
   python scripts/test_evennia_tutorial_walkthrough_ws.py --phase help
   python scripts/test_evennia_tutorial_walkthrough_ws.py --idle-every 25
+  # Prefer a single WS client; use --quiet-multisession to hide the sharing warning
 """
 from __future__ import annotations
 
@@ -85,13 +86,32 @@ async def _recover_if_needed(
     step_timeout: float,
     verbose: bool,
 ) -> str:
-    """Cancel accidental chardelete prompt; re-puppet after OOC (e.g. character destroyed)."""
+    """
+    Cancel chardelete get_input prompt; re-puppet after OOC.
+
+    Evennia stores the prompt on the Account with InputCmdSet. While puppeting a
+    Character, a bare line like "no" is parsed by the *character* cmdset first
+    (nomatch -> "Command 'no' is not available"), so it never reaches get_input.
+    We unpuppet (ooc) then send any non-yes line (e.g. nope) to abort deletion.
+    """
     low = text.lower()
     out = text
+    did_chardelete_abort = False
     if "permanently destroy" in low and "continue yes" in low:
         if verbose:
-            print("[recover] sending no to cancel chardelete prompt", flush=True)
-        await _send_cmd(ws, "no")
+            print(
+                "[recover] chardelete prompt: sending ooc then nope (abort get_input)",
+                flush=True,
+            )
+        await _send_cmd(ws, "ooc")
+        out += await _collect_burst(
+            ws,
+            quiet_after_last=quiet_after,
+            max_seconds=min(12.0, step_timeout),
+            verbose=verbose,
+        )
+        # Any answer except "yes" aborts (see CmdCharDelete in evennia.commands.default.account)
+        await _send_cmd(ws, "nope")
         out += await _collect_burst(
             ws,
             quiet_after_last=quiet_after,
@@ -99,7 +119,16 @@ async def _recover_if_needed(
             verbose=verbose,
         )
         low = out.lower()
-    if char_key and "out-of-character (ooc)" in low:
+        did_chardelete_abort = True
+    need_ic = bool(
+        char_key
+        and (
+            did_chardelete_abort
+            or "out-of-character (ooc)" in low
+            or "you go ooc" in low
+        )
+    )
+    if need_ic:
         if verbose:
             print(f"[recover] sending ic {char_key}", flush=True)
         await _send_cmd(ws, f"ic {char_key}")
@@ -181,12 +210,14 @@ async def _idle_loop(ws, interval: float) -> None:
 
 
 def _steps_help() -> list[tuple[str, dict]]:
+    # Topics that exist on default Account + Character cmdsets (avoid "No help found"
+    # for tutorial-only verbs like get/north on some merges).
     return [
         ("help", {}),
         ("help look", {}),
         ("help inventory", {}),
-        ("help get", {}),
-        ("help north", {}),
+        ("help ic", {}),
+        ("help ooc", {}),
     ]
 
 
@@ -258,6 +289,12 @@ async def run_walkthrough(args: argparse.Namespace) -> int:
             print(f"[after agent_connect]\n{banner[:2000]}\n---", flush=True)
         if char_key and args.verbose:
             print(f"[parsed character key: {char_key!r}]", flush=True)
+        if not args.quiet_multisession and "sharing" in banner.lower():
+            print(
+                "WARNING: multisession (shared puppet) detected — close other clients "
+                "to avoid chardelete races and duplicated output.",
+                file=sys.stderr,
+            )
 
         idle_task = None
         if args.idle_every and args.idle_every > 0:
@@ -337,6 +374,11 @@ def main() -> int:
         "--with-score",
         action="store_true",
         help="Include 'score' in basics (omitted by default; not in default CharacterCmdSet on this game)",
+    )
+    p.add_argument(
+        "--quiet-multisession",
+        action="store_true",
+        help="Do not print stderr warning when banner shows shared-puppet / multisession",
     )
     args = p.parse_args()
     if not args.api_key:
