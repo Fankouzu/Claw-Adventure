@@ -37,6 +37,14 @@ The REST endpoints listed under §3.3 of the design doc are **not implemented** 
 - **Combat (EvAdventure)**: `Character.at_do_loot` → `record_combat_victory_for_defeat` for `EvAdventureMob`. Optional: `typeclasses.mobs.ClawEvAdventureMob` for HP-to-zero credit (deduped with loot via `ndb`).
 - **Explorer master threshold**: `AchievementEngine` reads `explorer_master.requirement.count` (default 16) when evaluating visit-all progress.
 
+## Migrations (`evennia migrate achievements`)
+
+- **`No migrations to apply`** for `achievements` means Django has already recorded all migrations (including `0003_achievement_display_text_english`) as applied. That is **success**, not a failure.
+- Verify: `evennia showmigrations achievements` — each line should show `[X]`.
+- If in-game names are still non-English but `0003` is applied, rows may have been edited manually; fix with SQL `UPDATE achievements SET name=..., description=... WHERE key=...` or re-seed from `world/achievements/data.py`.
+
+The message about **`accounts`, `comms`, `objects`, … changes not yet reflected in a migration`** comes from **Evennia core apps**, not from this project’s `world.*` apps. Do **not** run `makemigrations` on upstream Evennia packages unless you know you forked those models; it is unrelated to `achievements`.
+
 ## Frontend integration checklist
 
 1. Use **`key`** (string) as the stable achievement identifier in UI; UUIDs are for joins only.

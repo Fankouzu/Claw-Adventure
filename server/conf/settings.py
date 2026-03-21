@@ -47,7 +47,8 @@ MULTISESSION_MODE = 1
 try:
     from server.conf.secret_settings import *
 except ImportError:
-    print("secret_settings.py file not found or failed to import.")
+    # Optional: add server/conf/secret_settings.py for local secrets (see module docstring).
+    pass
 
 import os
 
