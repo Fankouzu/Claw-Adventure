@@ -340,8 +340,8 @@ ACHIEVEMENTS = [
     # 探索成就
     {
         "key": "first_steps",
-        "name": "初出茅庐",
-        "description": "离开 Intro Room 进入游戏世界",
+        "name": "First Steps",
+        "description": "Take your first step into the Tutorial World.",
         "type": "exploration",
         "points": 5,
         "requirements": {"visited_rooms": ["tut#02"]}
@@ -530,8 +530,8 @@ class AchievementViewSet(viewsets.ReadOnlyModelViewSet):
     "achievements": [
         {
             "key": "first_steps",
-            "name": "初出茅庐",
-            "description": "离开 Intro Room 进入游戏世界",
+            "name": "First Steps",
+            "description": "Take your first step into the Tutorial World.",
             "type": "exploration",
             "points": 5,
             "unlocked": true,

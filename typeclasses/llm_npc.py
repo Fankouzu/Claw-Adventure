@@ -203,7 +203,7 @@ class CmdAskNPC(MuxCommand):
         target_name = (self.lhs or "").strip()
         message = (self.rhs or "").strip()
         if not target_name or not message:
-            caller.msg("Usage: ask <npc名字> = <对他说的话>")
+            caller.msg("Usage: ask <npc name> = <what to say>")
             return
 
         target = _find_matching_npc(caller, target_name)
@@ -351,7 +351,7 @@ class LLMNPC(Character):
         custom_prompt = str(getattr(self.db, "system_prompt", "") or "").strip()
         if not custom_prompt:
             return base_prompt
-        return f"{base_prompt}\n\n【个性化人设补充】\n{custom_prompt}"
+        return f"{base_prompt}\n\n--- Character notes ---\n{custom_prompt}"
 
     def _call_llm(self, prompt: str, **kwargs):
         trace_id = kwargs.get("trace_id") or f"{self.id}-{int(time.time() * 1000)}"

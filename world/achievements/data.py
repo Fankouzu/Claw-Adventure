@@ -8,8 +8,8 @@ This module defines the achievement data that can be loaded into the database.
 QUEST_ACHIEVEMENTS = [
     {
         'key': 'first_steps',
-        'name': '初出茅庐',
-        'description': '踏入 Tutorial World 的第一步',
+        'name': 'First Steps',
+        'description': 'Take your first step into the Tutorial World.',
         'category': 'exploration',
         'points': 10,
         'is_hidden': False,
@@ -17,8 +17,8 @@ QUEST_ACHIEVEMENTS = [
     },
     {
         'key': 'cliff_explorer',
-        'name': '悬崖探险家',
-        'description': '探索悬崖并攀爬树木',
+        'name': 'Cliff Explorer',
+        'description': 'Explore the cliff and climb the tree.',
         'category': 'exploration',
         'points': 15,
         'is_hidden': False,
@@ -26,8 +26,8 @@ QUEST_ACHIEVEMENTS = [
     },
     {
         'key': 'bridge_crosser',
-        'name': '勇渡深渊',
-        'description': '成功通过摇晃的桥梁',
+        'name': 'Bridge Crosser',
+        'description': 'Cross the swaying bridge safely.',
         'category': 'exploration',
         'points': 20,
         'is_hidden': False,
@@ -35,8 +35,8 @@ QUEST_ACHIEVEMENTS = [
     },
     {
         'key': 'dark_survivor',
-        'name': '黑暗幸存者',
-        'description': '从黑暗区域成功逃脱',
+        'name': 'Dark Survivor',
+        'description': 'Escape from the dark depths.',
         'category': 'exploration',
         'points': 25,
         'is_hidden': False,
@@ -44,8 +44,8 @@ QUEST_ACHIEVEMENTS = [
     },
     {
         'key': 'gatehouse_visitor',
-        'name': '门房来客',
-        'description': '到达古老的门房',
+        'name': 'Gatehouse Visitor',
+        'description': 'Reach the old gatehouse.',
         'category': 'exploration',
         'points': 15,
         'is_hidden': False,
@@ -53,8 +53,8 @@ QUEST_ACHIEVEMENTS = [
     },
     {
         'key': 'temple_visitor',
-        'name': '神庙访客',
-        'description': '进入神秘的神庙',
+        'name': 'Temple Visitor',
+        'description': 'Enter the mysterious temple.',
         'category': 'exploration',
         'points': 15,
         'is_hidden': False,
@@ -62,8 +62,8 @@ QUEST_ACHIEVEMENTS = [
     },
     {
         'key': 'puzzle_solver',
-        'name': '解谜大师',
-        'description': '完成破碎之墙谜题',
+        'name': 'Puzzle Solver',
+        'description': 'Solve the crumbling wall puzzle.',
         'category': 'puzzle',
         'points': 30,
         'is_hidden': False,
@@ -71,8 +71,8 @@ QUEST_ACHIEVEMENTS = [
     },
     {
         'key': 'tomb_finder',
-        'name': '墓穴发现者',
-        'description': '找到正确的墓室',
+        'name': 'Tomb Finder',
+        'description': 'Find the correct tomb.',
         'category': 'exploration',
         'points': 25,
         'is_hidden': False,
@@ -80,8 +80,8 @@ QUEST_ACHIEVEMENTS = [
     },
     {
         'key': 'ghost_slayer',
-        'name': '幽灵杀手',
-        'description': '击败可怕的幽灵',
+        'name': 'Ghost Slayer',
+        'description': 'Defeat the fearsome ghost.',
         'category': 'combat',
         'points': 30,
         'is_hidden': False,
@@ -89,8 +89,8 @@ QUEST_ACHIEVEMENTS = [
     },
     {
         'key': 'adventure_complete',
-        'name': '冒险完成',
-        'description': '完成整个 Tutorial World 冒险',
+        'name': 'Adventure Complete',
+        'description': 'Finish the entire Tutorial World.',
         'category': 'story',
         'points': 100,
         'is_hidden': False,
@@ -102,8 +102,8 @@ QUEST_ACHIEVEMENTS = [
 HIDDEN_ACHIEVEMENTS = [
     {
         'key': 'explorer_master',
-        'name': '探索大师',
-        'description': '访问全部 16 个房间',
+        'name': 'Master Explorer',
+        'description': 'Visit all 16 rooms.',
         'category': 'exploration',
         'points': 50,
         'is_hidden': True,
@@ -111,8 +111,8 @@ HIDDEN_ACHIEVEMENTS = [
     },
     {
         'key': 'secret_finder',
-        'name': '秘密发现者',
-        'description': '发现隐藏的秘密区域',
+        'name': 'Secret Finder',
+        'description': 'Discover a hidden area.',
         'category': 'exploration',
         'points': 30,
         'is_hidden': True,
@@ -120,8 +120,8 @@ HIDDEN_ACHIEVEMENTS = [
     },
     {
         'key': 'speedrunner',
-        'name': '速度之星',
-        'description': '在 5 分钟内完成游戏',
+        'name': 'Speedrunner',
+        'description': 'Finish the game within 5 minutes.',
         'category': 'story',
         'points': 75,
         'is_hidden': True,
@@ -133,8 +133,8 @@ HIDDEN_ACHIEVEMENTS = [
 COMBAT_ACHIEVEMENTS = [
     {
         'key': 'first_blood',
-        'name': '初次胜利',
-        'description': '击败第一个敌人',
+        'name': 'First Blood',
+        'description': 'Defeat your first enemy.',
         'category': 'combat',
         'points': 15,
         'is_hidden': False,
@@ -142,8 +142,8 @@ COMBAT_ACHIEVEMENTS = [
     },
     {
         'key': 'monster_hunter',
-        'name': '怪物猎人',
-        'description': '击败 10 个敌人',
+        'name': 'Monster Hunter',
+        'description': 'Defeat 10 enemies.',
         'category': 'combat',
         'points': 50,
         'is_hidden': False,
@@ -151,8 +151,8 @@ COMBAT_ACHIEVEMENTS = [
     },
     {
         'key': 'ghostbane',
-        'name': '幽灵克星',
-        'description': '击败幽灵 3 次',
+        'name': 'Ghostbane',
+        'description': 'Defeat the ghost 3 times.',
         'category': 'combat',
         'points': 40,
         'is_hidden': False,

@@ -94,3 +94,16 @@ def record_tutorial_mob_kill(attacker, mob):
         damage_dealt=0,
         damage_taken=0,
     )
+
+
+def send_achievement_unlock_messages(character, achievements):
+    """
+    Emit standard in-game lines for newly unlocked achievements.
+
+    All player-visible copy is English (name/description come from DB).
+    """
+    if not character or not achievements:
+        return
+    for ach in achievements:
+        character.msg(f"|gAchievement unlocked: {ach.name}|n")
+        character.msg(f"|g{ach.description}|n")

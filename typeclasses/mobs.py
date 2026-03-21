@@ -7,6 +7,8 @@ credit when HP hits 0. Loot-based credit shares the same ndb dedup flag.
 
 from evennia.contrib.tutorials.evadventure.npcs import EvAdventureMob
 
+from world.achievements.integration import send_achievement_unlock_messages
+
 
 class ClawEvAdventureMob(EvAdventureMob):
     """
@@ -24,6 +26,4 @@ class ClawEvAdventureMob(EvAdventureMob):
         )
 
         unlocked = record_combat_victory_for_defeat(attacker, self)
-        for ach in unlocked:
-            attacker.msg(f"|g成就解锁: {ach.name}|n")
-            attacker.msg(f"|g{ach.description}|n")
+        send_achievement_unlock_messages(attacker, unlocked)

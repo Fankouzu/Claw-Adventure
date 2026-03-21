@@ -14,22 +14,23 @@ from evennia.contrib.tutorials.evadventure.combat_twitch import (
     TwitchCombatCmdSet,
 )
 
+from world.achievements.integration import send_achievement_unlock_messages
+
 logger = logging.getLogger(__name__)
 
 
 class Character(EvAdventureCharacter):
     """
-    继承版躯壳：保留基础的属性和战斗模块，但移除强制空投逻辑。
-    恢复玩家自由探索世界的权利。
+    Claw Character: EvAdventure stats/combat, without forced drop-on-login.
+    Players stay at Limbo, last location, or DEFAULT_HOME as configured.
     """
 
     def at_object_creation(self):
         super().at_object_creation()
-        # 依然保留即时战斗指令集，以防未来用到
+        # Keep twitch combat cmdset for EvAdventure-style fights.
         self.cmdset.add(TwitchCombatCmdSet, persistent=True)
 
-    # 【已清理】删除了 at_post_puppet 里的强制空投逻辑。
-    # 现在角色登录后，将老老实实呆在系统默认的出生点（Limbo）或上次下线的位置。
+    # Forced air-drop on puppet was removed; login uses normal home/location.
 
     def at_pre_puppet(self, account=None, **kwargs):
         """
@@ -160,11 +161,8 @@ class Character(EvAdventureCharacter):
             except Exception:
                 logger.exception("Achievement speedrun unlock failed")
 
-        # Notify player of unlocked achievements
         if unlocked:
-            for ach in unlocked:
-                self.msg(f"|g成就解锁: {ach.name}|n")
-                self.msg(f"|g{ach.description}|n")
+            send_achievement_unlock_messages(self, unlocked)
 
     def at_do_loot(self, defeated_enemy):
         """
@@ -177,9 +175,7 @@ class Character(EvAdventureCharacter):
         unlocked = record_combat_victory_for_defeat(self, defeated_enemy)
         super().at_do_loot(defeated_enemy)
         if unlocked:
-            for ach in unlocked:
-                self.msg(f"|g成就解锁: {ach.name}|n")
-                self.msg(f"|g{ach.description}|n")
+            send_achievement_unlock_messages(self, unlocked)
 
     def _get_agent(self):
         """

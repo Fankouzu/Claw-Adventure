@@ -10,6 +10,8 @@ import time
 
 from evennia.utils import logger
 
+from world.achievements.integration import send_achievement_unlock_messages
+
 _INSTALLED = False
 
 
@@ -29,9 +31,7 @@ def _notify_climb(caller):
     unlocked.extend(
         AchievementEngine.apply_context_unlock(agent, type="find_secret")
     )
-    for ach in unlocked:
-        caller.msg(f"|g成就解锁: {ach.name}|n")
-        caller.msg(f"|g{ach.description}|n")
+    send_achievement_unlock_messages(caller, unlocked)
 
 
 def _notify_crumbling_wall(caller):
@@ -44,9 +44,7 @@ def _notify_crumbling_wall(caller):
     unlocked = AchievementEngine.apply_context_unlock(
         agent, room_key="tut#12", puzzle="broken_wall"
     )
-    for ach in unlocked:
-        caller.msg(f"|g成就解锁: {ach.name}|n")
-        caller.msg(f"|g{ach.description}|n")
+    send_achievement_unlock_messages(caller, unlocked)
 
 
 def install_tutorial_achievement_hooks() -> None:
@@ -137,9 +135,7 @@ def install_tutorial_achievement_hooks() -> None:
         from world.achievements.integration import record_tutorial_mob_kill
 
         unlocked = record_tutorial_mob_kill(attacker, self)
-        for ach in unlocked:
-            attacker.msg(f"|g成就解锁: {ach.name}|n")
-            attacker.msg(f"|g{ach.description}|n")
+        send_achievement_unlock_messages(attacker, unlocked)
 
     Mob.at_hit = _patched_mob_at_hit
 
