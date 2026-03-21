@@ -164,98 +164,97 @@ def check_rate_limit_agent(agent_id: str) -> bool:
     return True
 
 
-def verify_auth_response(nonce: str, api_key_prefix: str, signature: str, ip_address: str = None) -> dict:
+def verify_auth_response(
+    nonce: str,
+    api_key_prefix: str | None = None,
+    signature: str | None = None,
+    ip_address: str | None = None,
+    api_key: str | None = None,
+) -> dict:
     """
-    验证认证响应
-    
-    Args:
-        nonce: 客户端返回的 nonce
-        api_key_prefix: API Key 前缀
-        signature: 客户端计算的签名
-        ip_address: 客户端 IP（用于速率限制）
-        
-    Returns:
-        结果字典，包含 success、agent 或 error
+    Verify WebSocket auth_response: full api_key (over WSS) + HMAC-SHA256(nonce, key).
+
+    Prefix-only auth is disabled: without the secret key material the server cannot
+    verify an HMAC while storing only api_key_hash.
     """
-    # 检查 IP 速率限制
     if ip_address and not check_rate_limit_ip(ip_address):
         return {
             "success": False,
             "error_code": "RATE_LIMITED",
-            "message": "Too many authentication attempts from this IP"
+            "message": "Too many authentication attempts from this IP",
         }
-    
-    # 检查 nonce 有效性
+
     if not check_nonce_valid(nonce):
         return {
             "success": False,
             "error_code": "CHALLENGE_EXPIRED",
-            "message": "Challenge has expired or is invalid"
+            "message": "Challenge has expired or is invalid",
         }
-    
-    # 根据 prefix 查找 Agent
+
+    if not api_key or not api_key.startswith("claw_"):
+        return {
+            "success": False,
+            "error_code": "UNSUPPORTED_AUTH_SCHEME",
+            "message": (
+                "Send api_key (over WSS) and signature. "
+                "Prefix-only authentication is not supported."
+            ),
+        }
+
+    if not signature:
+        return {
+            "success": False,
+            "error_code": "SIGNATURE_REQUIRED",
+            "message": "signature is required",
+        }
+
+    api_key_hash = Agent.hash_api_key(api_key)
     try:
-        agent = Agent.objects.get(api_key_prefix=api_key_prefix)
+        agent = Agent.objects.get(api_key_hash=api_key_hash)
     except Agent.DoesNotExist:
         return {
             "success": False,
             "error_code": "INVALID_API_KEY",
-            "message": "Invalid API key prefix"
+            "message": "Invalid API key",
         }
-    
-    # 检查 Agent 速率限制
+
+    if api_key_prefix is not None and not api_key.startswith(api_key_prefix):
+        return {
+            "success": False,
+            "error_code": "PREFIX_MISMATCH",
+            "message": "api_key_prefix does not match api_key",
+        }
+
+    if not verify_signature(nonce, api_key, signature):
+        return {
+            "success": False,
+            "error_code": "SIGNATURE_MISMATCH",
+            "message": "Invalid signature",
+        }
+
     if not check_rate_limit_agent(str(agent.id)):
         return {
             "success": False,
             "error_code": "RATE_LIMITED",
-            "message": "Too many authentication attempts for this agent"
+            "message": "Too many authentication attempts for this agent",
         }
-    
-    # 检查 Agent 是否已认领
+
     if not agent.is_claimed:
         return {
             "success": False,
             "error_code": "AGENT_NOT_CLAIMED",
-            "message": "Agent has not been claimed by a human"
+            "message": "Agent has not been claimed by a human",
         }
-    
-    # 我们需要 API Key 来验证签名，但我们只存储了 hash
-    # 这里使用一种变通方法：客户端发送 signature，我们用存储的 hash 来验证
-    # 实际上，我们需要客户端用 API Key 计算 signature，然后我们验证
-    # 由于我们只有 hash，我们需要让客户端在注册时保存 API Key 或者使用不同的方案
-    
-    # 修改方案：签名验证需要明文 API Key
-    # 客户端需要保存 API Key，服务器无法验证签名
-    # 替代方案：使用简单的 token 匹配或让客户端保存 API Key
-    
-    # 对于 MVP，我们采用简化方案：
-    # 1. 客户端发送 api_key_prefix + signature
-    # 2. 服务器无法验证签名（因为没有明文 API Key）
-    # 3. 改为让客户端发送一个 proof = hash(api_key + nonce)
-    # 4. 服务器用 api_key_hash 验证: hash(api_key + nonce) vs expected
-    
-    # 最简方案：客户端发送 api_key（一次性），服务器验证后丢弃
-    # 但这不够安全
-    
-    # 当前实现：跳过签名验证，仅检查 prefix 匹配
-    # 生产环境需要更安全的方案
-    
-    # TODO: 实现更安全的验证方案
-    # 方案 A: 客户端发送 API Key，服务器验证 hash 后立即丢弃
-    # 方案 B: 使用公钥加密
-    
-    # 消费 nonce
+
     consume_nonce(nonce)
-    
-    # 更新最后活动时间
     agent.update_last_active()
-    
+
     return {
         "success": True,
         "agent": agent,
         "agent_id": str(agent.id),
         "agent_name": agent.name,
-        "message": "Authentication successful"
+        "message": "Authentication successful",
     }
 
 

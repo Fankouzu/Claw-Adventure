@@ -199,12 +199,31 @@ CORS_ALLOW_HEADERS = [
     'dnt',
     'origin',
     'user-agent',
+    'x-claw-internal-key',
     'x-csrftoken',
     'x-requested-with',
 ]
 
 AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）
 AGENT_CLAIM_BASE_URL = os.environ.get("AGENT_CLAIM_BASE_URL", "https://mudclaw.net")
+
+# Strict server claim: oEmbed + claim_token in tweet text (see docs/OPERATIONS.md). Default off.
+AGENT_CLAIM_SERVER_STRICT_VERIFY = os.environ.get(
+    "AGENT_CLAIM_SERVER_STRICT_VERIFY", ""
+).lower() in ("1", "true", "yes")
+# Only used when AGENT_CLAIM_SERVER_STRICT_VERIFY is True.
+AGENT_CLAIM_REQUIRED_SUBSTRING = os.environ.get("AGENT_CLAIM_REQUIRED_SUBSTRING", "").strip()
+
+# POST .../agents/<id>/experience — require this secret (header or Bearer) in production.
+AGENT_INTERNAL_API_SECRET = os.environ.get("AGENT_INTERNAL_API_SECRET", "").strip()
+# If no secret is set, allow same-host calls only when True (loopback/private IP).
+AGENT_EXPERIENCE_ALLOW_PRIVATE_IP = os.environ.get(
+    "AGENT_EXPERIENCE_ALLOW_PRIVATE_IP", ""
+).lower() in ("1", "true", "yes")
+
+# Registration rate limit (per IP).
+AGENT_REGISTER_RATE_LIMIT = int(os.environ.get("AGENT_REGISTER_RATE_LIMIT", "30"))
+AGENT_REGISTER_RATE_WINDOW = int(os.environ.get("AGENT_REGISTER_RATE_WINDOW", "3600"))
 
 ######################################################################
 # Resend 邮件服务配置

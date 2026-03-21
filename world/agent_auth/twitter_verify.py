@@ -1,136 +1,178 @@
 """
-Twitter 推文验证服务
+Twitter / X URL handling for Agent claim.
 
-用于验证用户提交的推文 URL 是否有效。
-由于 X.com 使用 JavaScript 动态渲染，网页抓取不可靠。
-采用简化验证：验证推文 URL 格式正确即可。
+Default: weak server-side verification (URL shape + handle). Strong checks
+(oEmbed + claim_token in text) are optional for deployments that can reach
+publish.twitter.com and want extra assurance.
+
+Product expectation: richer verification can be implemented in the frontend;
+this backend stays compatible with Railway-style game stacks without relying
+on server-side Twitter access for the default path.
 """
-import re
 import logging
+import re
+
 import requests
+from django.conf import settings
 from django.utils import timezone
+
 from .models import Agent
 
 logger = logging.getLogger(__name__)
 
+OEMBED_URL = "https://publish.twitter.com/oembed"
+
 
 def extract_tweet_id(tweet_url: str) -> str | None:
-    """
-    从推文 URL 提取 tweet_id
-    
-    支持的 URL 格式：
-    - https://twitter.com/username/status/123456789
-    - https://x.com/username/status/123456789
-    """
+    """Extract tweet_id from URL (twitter.com or x.com)."""
     if not tweet_url:
         return None
-    
-    pattern = r'(?:twitter\.com|x\.com)/\w+/status/(\d+)'
+
+    pattern = r"(?:twitter\.com|x\.com)/\w+/status/(\d+)"
     match = re.search(pattern, tweet_url)
-    
+
     if match:
         return match.group(1)
-    
+
     return None
 
 
 def extract_twitter_handle(tweet_url: str) -> str | None:
-    """
-    从推文 URL 提取 Twitter 用户名
-    """
+    """Extract Twitter username from tweet URL."""
     if not tweet_url:
         return None
-    
-    pattern = r'(?:twitter\.com|x\.com)/(\w+)/status/\d+'
+
+    pattern = r"(?:twitter\.com|x\.com)/(\w+)/status/\d+"
     match = re.search(pattern, tweet_url)
-    
+
     if match:
         return match.group(1)
-    
+
     return None
 
 
-def verify_tweet_exists(tweet_id: str) -> bool:
+def verify_tweet_exists_best_effort(tweet_id: str) -> None:
     """
-    验证推文是否存在（通过 HTTP 请求）
-    
-    Returns:
-        True 如果推文存在且可访问
+    Optional HEAD check; failures are ignored (weak path).
+
+    Does not block claim; logs at debug only.
     """
     try:
         url = f"https://x.com/i/status/{tweet_id}"
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            "User-Agent": "Mozilla/5.0 (compatible; ClawAdventure/1.0; +claim-weak)",
         }
         response = requests.head(url, headers=headers, timeout=10, allow_redirects=True)
-        # 200 = exists, 302 = might be rate limited but URL is valid
-        return response.status_code in [200, 302, 403]  # 403 means rate limited but URL valid
-    except Exception as e:
-        logger.warning(f"Could not verify tweet existence: {e}")
-        # If we can't verify, assume it's valid (fail open)
-        return True
+        logger.debug("claim weak HEAD %s -> %s", tweet_id, response.status_code)
+    except Exception as exc:
+        logger.debug("claim weak HEAD skipped: %s", exc)
+
+
+def fetch_tweet_visible_text_oembed(tweet_url: str) -> str | None:
+    """Used only when AGENT_CLAIM_SERVER_STRICT_VERIFY is enabled."""
+    try:
+        response = requests.get(
+            OEMBED_URL,
+            params={"url": tweet_url.strip(), "omit_script": "true"},
+            timeout=15,
+            headers={"User-Agent": "ClawAdventure/1.0 (claim-verify-strict)"},
+        )
+        if response.status_code != 200:
+            logger.info("oEmbed HTTP %s for strict claim verify", response.status_code)
+            return None
+        payload = response.json()
+        html = payload.get("html") or ""
+        text = re.sub(r"<[^>]+>", " ", html)
+        return " ".join(text.split())
+    except Exception:
+        logger.exception("oEmbed request failed for strict claim verify")
+        return None
+
+
+def _tweet_contains_claim_proof(visible_text: str, agent: Agent) -> tuple[bool, str | None]:
+    """Strict mode: visible text must include claim_token and optional substring."""
+    if agent.claim_token not in visible_text:
+        return (
+            False,
+            "Could not confirm your tweet contains the claim link or token. "
+            "Post using the share button on the claim page (public account), then try again.",
+        )
+    extra = (getattr(settings, "AGENT_CLAIM_REQUIRED_SUBSTRING", None) or "").strip()
+    if extra and extra not in visible_text:
+        return (
+            False,
+            "Tweet must include the required phrase from the claim instructions.",
+        )
+    return True, None
 
 
 def complete_agent_claim(agent: Agent, tweet_url: str, twitter_handle: str) -> bool:
-    """
-    完成 Agent 认领流程
-    """
+    """Persist claim completion."""
     try:
         agent.tweet_url = tweet_url
         agent.twitter_handle = twitter_handle
         agent.claim_status = Agent.ClaimStatus.CLAIMED
         agent.claimed_at = timezone.now()
         agent.save()
-        
-        logger.info(f"Agent {agent.name} claimed by @{twitter_handle}")
+
+        logger.info("Agent %s claimed by @%s", agent.name, twitter_handle)
         return True
-        
-    except Exception as e:
-        logger.error(f"Failed to complete agent claim: {e}")
+
+    except Exception:
+        logger.exception("Failed to complete agent claim")
         return False
 
 
 def verify_and_claim_agent(agent: Agent, tweet_url: str) -> dict:
     """
-    完整的验证和认领流程
-    
-    简化验证逻辑：
-    1. 验证推文 URL 格式正确
-    2. 提取 Twitter handle
-    3. 可选：验证推文是否存在
-    4. 完成认领
-    
-    注意：由于 X.com 使用 JavaScript 动态渲染内容，
-    我们无法可靠地抓取推文文本。采用信任模型：
-    用户发布推文后，只要提交正确的推文 URL 格式即可验证。
+    Complete claim after basic URL checks.
+
+    - Default (weak): valid x.com/twitter status URL + handle; optional best-effort HEAD.
+    - Strict (AGENT_CLAIM_SERVER_STRICT_VERIFY): oEmbed must return text containing
+      claim_token and optional AGENT_CLAIM_REQUIRED_SUBSTRING.
     """
-    # 提取 tweet_id
     tweet_id = extract_tweet_id(tweet_url)
     if not tweet_id:
         return {
-            'success': False,
-            'error': 'Invalid tweet URL format. Expected: https://x.com/username/status/123456789'
+            "success": False,
+            "error": (
+                "Invalid tweet URL format. Expected: "
+                "https://x.com/username/status/1234567890123456789"
+            ),
         }
-    
-    # 提取 twitter_handle
+
     twitter_handle = extract_twitter_handle(tweet_url)
     if not twitter_handle:
         return {
-            'success': False,
-            'error': 'Could not extract Twitter handle from URL'
+            "success": False,
+            "error": "Could not extract Twitter handle from URL",
         }
-    
-    # 验证推文是否存在（可选，失败不影响）
-    verify_tweet_exists(tweet_id)
-    
-    # 完成认领
+
+    strict = getattr(settings, "AGENT_CLAIM_SERVER_STRICT_VERIFY", False)
+
+    if strict:
+        visible = fetch_tweet_visible_text_oembed(tweet_url)
+        if visible is None:
+            return {
+                "success": False,
+                "error": (
+                    "Could not load tweet content (deleted, private, or network error). "
+                    "Ensure the post is public and retry."
+                ),
+            }
+
+        ok, err = _tweet_contains_claim_proof(visible, agent)
+        if not ok:
+            return {"success": False, "error": err}
+    else:
+        verify_tweet_exists_best_effort(tweet_id)
+
     if complete_agent_claim(agent, tweet_url, twitter_handle):
         return {
-            'success': True,
-            'message': f'Agent claimed by @{twitter_handle}'
+            "success": True,
+            "message": f"Agent claimed by @{twitter_handle}",
         }
-    else:
-        return {
-            'success': False,
-            'error': 'Failed to update agent status'
-        }
+    return {
+        "success": False,
+        "error": "Failed to update agent status",
+    }

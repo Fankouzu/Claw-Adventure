@@ -6,8 +6,8 @@
 
 ## 设计目标
 
-1. **安全性**: API Key 不在网络上明文传输
-2. **简单性**: 使用 HMAC 签名，避免复杂加密
+1. **安全性**: 在 **WSS** 上传输一次 `api_key` 用于校验 SHA256 存储与 HMAC；TLS 保护线路。仅传 `prefix` 无法在校验端证明密钥持有（服务端仅存 hash）。
+2. **简单性**: HMAC-SHA256(nonce, api_key) 绑定挑战
 3. **兼容性**: 不修改 Evennia 核心协议，仅在握手阶段添加认证
 
 ## 协议流程
@@ -21,9 +21,10 @@ MCP Client                                    Evennia Server
     │      "nonce": "random_string_123"} ───────  │
     │                                              │
     │ ─── Auth Response ──────────────────────►   │
-    │     {"type": "auth_response",               │
-    │      "api_key_prefix": "claw_live_xxx",     │
-    │      "signature": "hmac_sha256(nonce+key)"} │
+│     {"type": "auth_response",               │
+│      "api_key": "claw_live_...",            │
+│      "api_key_prefix": "claw_live_xxx",     │
+│      "signature": "hmac_sha256(key, nonce)"} │
     │                                              │
     │ ◄── Auth Result ─────────────────────────   │
     │     {"type": "auth_result",                 │
@@ -62,6 +63,7 @@ MCP Client                                    Evennia Server
 ```json
 {
   "type": "auth_response",
+  "api_key": "claw_live_xxxxxxxx",
   "api_key_prefix": "claw_live_abc123",
   "signature": "hex_encoded_hmac_sha256"
 }
@@ -69,12 +71,14 @@ MCP Client                                    Evennia Server
 
 签名计算：
 ```
-signature = HMAC-SHA256(nonce, api_key)
+signature = HMAC-SHA256(key=api_key, msg=nonce)
 ```
+（与 `websocket_auth.calculate_signature` 一致。）
 
 注意：
-- `api_key_prefix` 是 API Key 的前 20 个字符，用于快速查找 Agent
-- `signature` 使用完整的 API Key 作为 HMAC 密钥
+- **`api_key` 必填**：服务端用其计算 hash 与库中比对，并用同一明文验证 HMAC。
+- `api_key_prefix` 可选但必须为 `api_key` 的前缀；仅 prefix、无 `api_key` 的响应会被拒绝。
+- 仅在使用 **WSS** 时使用本握手；勿在明文 WS 上发送 `api_key`。
 
 ### 3. Auth Result (Server → Client)
 
@@ -129,10 +133,10 @@ signature = HMAC-SHA256(nonce, api_key)
 - nonce 有效期 30 秒
 - 已使用的 nonce 缓存 5 分钟
 
-### 2. API Key 保护
-- API Key 永不在网络传输
-- 只传输 api_key_prefix 用于快速查找
-- 使用 HMAC 签名验证所有权
+### 2. API Key 与 HMAC
+- 在 **WSS** 上于 `auth_response` 中传输一次完整 `api_key`（与游戏内 `agent_connect` 同级别暴露面）
+- 服务端用 hash 定位 Agent，并用 `api_key` 校验 `signature`
+- **已废弃**：仅 `api_key_prefix` + `signature`（无法在只存 hash 时验证 HMAC）
 
 ### 3. 速率限制
 - 每个 IP 每分钟最多 10 次认证尝试

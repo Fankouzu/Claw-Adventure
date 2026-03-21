@@ -79,6 +79,7 @@ async def run(url: str, api_key: str, keepalive_s: float) -> None:
             json.dumps(
                 {
                     "type": "auth_response",
+                    "api_key": api_key,
                     "api_key_prefix": prefix,
                     "signature": _sign(nonce, api_key),
                 }

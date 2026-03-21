@@ -3,15 +3,22 @@ Agent 认领系统测试
 
 测试 Agent 注册、认领、认证等核心流程。
 """
-from evennia.utils.test_resources import EvenniaTest
-from django.test import TestCase
+from unittest.mock import patch
+
+from django.test import TestCase, RequestFactory, override_settings
 from django.test.client import Client
 import json
 from uuid import UUID
 
 from world.agent_auth.models import Agent, AgentSession
 from world.agent_auth.auth import verify_api_key, verify_claim_token, check_claim_status
-from world.agent_auth.twitter_verify import extract_tweet_id, extract_twitter_handle
+from world.agent_auth.twitter_verify import (
+    extract_tweet_id,
+    extract_twitter_handle,
+    verify_and_claim_agent,
+)
+from world.agent_auth import websocket_auth
+from world.agent_auth.views import agent_gain_experience
 
 
 class AgentModelTest(TestCase):
@@ -308,3 +315,143 @@ class AgentSessionTest(TestCase):
         
         # 应该约 300 秒
         self.assertAlmostEqual(session.duration_seconds, 300, delta=1)
+
+
+class ExperienceAPITest(TestCase):
+    """POST experience: internal secret or private-IP bypass."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.agent, _ = Agent.create_agent(name="ExperienceAgent")
+
+    @override_settings(
+        AGENT_INTERNAL_API_SECRET="unit-test-secret",
+        AGENT_EXPERIENCE_ALLOW_PRIVATE_IP=False,
+    )
+    def test_experience_denied_without_secret(self):
+        req = self.factory.post(
+            f"/api/agents/{self.agent.id}/experience",
+            data=json.dumps({"experience": 5}),
+            content_type="application/json",
+        )
+        resp = agent_gain_experience(req, str(self.agent.id))
+        self.assertEqual(resp.status_code, 401)
+
+    @override_settings(
+        AGENT_INTERNAL_API_SECRET="unit-test-secret",
+        AGENT_EXPERIENCE_ALLOW_PRIVATE_IP=False,
+    )
+    def test_experience_ok_with_x_claw_internal_key(self):
+        req = self.factory.post(
+            f"/api/agents/{self.agent.id}/experience",
+            data=json.dumps({"experience": 5}),
+            content_type="application/json",
+            HTTP_X_CLAW_INTERNAL_KEY="unit-test-secret",
+        )
+        resp = agent_gain_experience(req, str(self.agent.id))
+        self.assertEqual(resp.status_code, 200)
+        body = json.loads(resp.content)
+        self.assertEqual(body["experience"], 5)
+
+    @override_settings(
+        AGENT_INTERNAL_API_SECRET="",
+        AGENT_EXPERIENCE_ALLOW_PRIVATE_IP=True,
+    )
+    def test_experience_private_ip_bypass_when_no_secret(self):
+        req = self.factory.post(
+            f"/api/agents/{self.agent.id}/experience",
+            data=json.dumps({"experience": 3}),
+            content_type="application/json",
+            REMOTE_ADDR="127.0.0.1",
+        )
+        resp = agent_gain_experience(req, str(self.agent.id))
+        self.assertEqual(resp.status_code, 200)
+
+
+class ClaimTweetVerifyTest(TestCase):
+    """Default weak claim; optional strict oEmbed path."""
+
+    def setUp(self):
+        self.agent, _ = Agent.create_agent(name="ClaimProofAgent")
+
+    @override_settings(AGENT_CLAIM_SERVER_STRICT_VERIFY=False)
+    @patch("world.agent_auth.twitter_verify.verify_tweet_exists_best_effort")
+    def test_weak_claim_succeeds_with_valid_url(self, _mock_head):
+        r = verify_and_claim_agent(
+            self.agent,
+            "https://x.com/someuser/status/1234567890123456789",
+        )
+        self.assertTrue(r["success"])
+        self.agent.refresh_from_db()
+        self.assertTrue(self.agent.is_claimed)
+
+    @override_settings(AGENT_CLAIM_SERVER_STRICT_VERIFY=True)
+    @patch("world.agent_auth.twitter_verify.fetch_tweet_visible_text_oembed")
+    def test_strict_rejects_tweet_without_token(self, mock_oembed):
+        mock_oembed.return_value = "Hello world no token here"
+        r = verify_and_claim_agent(
+            self.agent,
+            "https://x.com/someuser/status/1234567890123456789",
+        )
+        self.assertFalse(r["success"])
+
+    @override_settings(AGENT_CLAIM_SERVER_STRICT_VERIFY=True)
+    @patch("world.agent_auth.twitter_verify.fetch_tweet_visible_text_oembed")
+    def test_strict_accepts_tweet_containing_claim_token(self, mock_oembed):
+        mock_oembed.return_value = f"Joining Claw {self.agent.claim_token} ok"
+        r = verify_and_claim_agent(
+            self.agent,
+            "https://x.com/someuser/status/1234567890123456789",
+        )
+        self.assertTrue(r["success"])
+        self.agent.refresh_from_db()
+        self.assertTrue(self.agent.is_claimed)
+
+
+class WebSocketAuthResponseTest(TestCase):
+    """verify_auth_response must use full api_key + signature."""
+
+    def setUp(self):
+        self.agent, self.api_key = Agent.create_agent(name="WsVerifyAgent")
+        self.agent.claim_status = Agent.ClaimStatus.CLAIMED
+        self.agent.save()
+
+    def test_success_with_api_key_and_signature(self):
+        ch = websocket_auth.generate_challenge()
+        nonce = ch["nonce"]
+        sig = websocket_auth.calculate_signature(nonce, self.api_key)
+        r = websocket_auth.verify_auth_response(
+            nonce,
+            self.api_key[:20],
+            sig,
+            None,
+            api_key=self.api_key,
+        )
+        self.assertTrue(r["success"])
+
+    def test_rejects_without_api_key(self):
+        ch = websocket_auth.generate_challenge()
+        nonce = ch["nonce"]
+        sig = websocket_auth.calculate_signature(nonce, self.api_key)
+        r = websocket_auth.verify_auth_response(
+            nonce,
+            self.api_key[:20],
+            sig,
+            None,
+            api_key=None,
+        )
+        self.assertFalse(r["success"])
+        self.assertEqual(r["error_code"], "UNSUPPORTED_AUTH_SCHEME")
+
+    def test_rejects_bad_signature(self):
+        ch = websocket_auth.generate_challenge()
+        nonce = ch["nonce"]
+        r = websocket_auth.verify_auth_response(
+            nonce,
+            self.api_key[:20],
+            "0" * 64,
+            None,
+            api_key=self.api_key,
+        )
+        self.assertFalse(r["success"])
+        self.assertEqual(r["error_code"], "SIGNATURE_MISMATCH")

@@ -1,16 +1,24 @@
 """
 Agent Claim 页面视图
 """
+import logging
+
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from django.db import transaction, IntegrityError
+from django.conf import settings
 import json
 from .models import Agent, InvitationCode, UserEmail, EmailToken, FissionCodeVisit, InvitationRelationship
 from datetime import datetime
 from .auth import verify_claim_token
 from .twitter_verify import verify_and_claim_agent
+from .internal_api import client_ip, experience_request_authorized
+from .ratelimit import check_rate_limit
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -49,6 +57,18 @@ def agent_gain_experience(request, agent_id):
     POST /api/agents/{agent_id}/experience
     增加 Agent 经验值（游戏内部调用）
     """
+    if not experience_request_authorized(request):
+        return JsonResponse(
+            {
+                "error": "Unauthorized",
+                "detail": (
+                    "Set AGENT_INTERNAL_API_SECRET and send X-Claw-Internal-Key or "
+                    "Authorization: Bearer <secret>, or enable "
+                    "AGENT_EXPERIENCE_ALLOW_PRIVATE_IP for dev."
+                ),
+            },
+            status=401,
+        )
     try:
         from uuid import UUID
         import json
@@ -94,60 +114,76 @@ def register_agent(request):
     """
     try:
         data = json.loads(request.body)
-        name = data.get('name', '').strip()
-        description = data.get('description', '')
-        invitation_code = data.get('invitation_code', '').strip().upper()
-        
-        if not name:
-            return JsonResponse({'error': 'name is required'}, status=400)
-        
-        if not invitation_code:
-            return JsonResponse({'error': 'invitation_code is required'}, status=400)
-        
-        # 验证邀请码
-        try:
-            inv_code = InvitationCode.objects.get(code=invitation_code)
-        except InvitationCode.DoesNotExist:
-            return JsonResponse({'error': 'Invalid invitation code'}, status=400)
-        
-        if inv_code.is_used:
-            return JsonResponse({'error': 'Invitation code already used'}, status=400)
-        
-        # 检查名称是否已存在
-        if Agent.objects.filter(name=name).exists():
-            return JsonResponse({'error': 'Agent name already exists'}, status=409)
-        
-        # 创建 Agent
-        agent, api_key = Agent.create_agent(name=name, description=description)
-
-        # 标记邀请码为已使用
-        inv_code.mark_used(agent)
-
-        # Auto-generate fission code for the new agent
-        generation = inv_code.generation + 1 if inv_code.generation else 1
-        fission_code = InvitationCode.create_fission_code(agent, generation)
-
-        # Record invitation relationship
-        InvitationRelationship.objects.create(
-            inviter=inv_code.created_by,  # May be None for admin codes
-            invitee=agent,
-            code=inv_code
-        )
-
-        return JsonResponse({
-            'agent_id': str(agent.id),
-            'name': agent.name,
-            'api_key': api_key,
-            'claim_url': agent.claim_url,
-            'claim_expires_at': agent.claim_expires_at.isoformat(),
-            'fission_code': fission_code.code,
-            'message': 'Visit the Cliff in game to see your invitation code!'
-        }, status=201)
-        
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+
+    name = data.get('name', '').strip()
+    description = data.get('description', '')
+    invitation_code = data.get('invitation_code', '').strip().upper()
+
+    if not name:
+        return JsonResponse({'error': 'name is required'}, status=400)
+
+    if not invitation_code:
+        return JsonResponse({'error': 'invitation_code is required'}, status=400)
+
+    ip = client_ip(request)
+    reg_limit = getattr(settings, "AGENT_REGISTER_RATE_LIMIT", 30)
+    reg_window = getattr(settings, "AGENT_REGISTER_RATE_WINDOW", 3600)
+    allowed, _remaining, reset_at = check_rate_limit(
+        ip, "agent_register", limit=reg_limit, window=reg_window
+    )
+    if not allowed:
+        return JsonResponse(
+            {
+                "error": "Too many registration attempts",
+                "retry_after": int((reset_at - datetime.now()).total_seconds()),
+            },
+            status=429,
+        )
+
+    try:
+        with transaction.atomic():
+            try:
+                inv_code = InvitationCode.objects.select_for_update().get(code=invitation_code)
+            except InvitationCode.DoesNotExist:
+                return JsonResponse({'error': 'Invalid invitation code'}, status=400)
+
+            if inv_code.is_used:
+                return JsonResponse({'error': 'Invitation code already used'}, status=400)
+
+            if Agent.objects.filter(name=name).exists():
+                return JsonResponse({'error': 'Agent name already exists'}, status=409)
+
+            agent, api_key = Agent.create_agent(name=name, description=description)
+            inv_code.mark_used(agent)
+
+            generation = inv_code.generation + 1 if inv_code.generation else 1
+            fission_code = InvitationCode.create_fission_code(agent, generation)
+
+            InvitationRelationship.objects.create(
+                inviter=inv_code.created_by,
+                invitee=agent,
+                code=inv_code,
+            )
+
+        return JsonResponse(
+            {
+                'agent_id': str(agent.id),
+                'name': agent.name,
+                'api_key': api_key,
+                'claim_url': agent.claim_url,
+                'claim_expires_at': agent.claim_expires_at.isoformat(),
+                'fission_code': fission_code.code,
+                'message': 'Visit the Cliff in game to see your invitation code!',
+            },
+            status=201,
+        )
+    except IntegrityError:
+        return JsonResponse({'error': 'Agent name already exists'}, status=409)
+    except Exception:
+        logger.exception("register_agent failed")
+        return JsonResponse({'error': 'Registration failed'}, status=500)
 
 
 # ============================================================================
@@ -213,6 +249,17 @@ def verify_tweet(request, token):
     
     if agent.is_claimed:
         return JsonResponse({'error': 'Agent already claimed'}, status=400)
+
+    ip = client_ip(request)
+    cv_allowed, _, cv_reset = check_rate_limit(ip, "claim_verify", limit=60, window=3600)
+    if not cv_allowed:
+        return JsonResponse(
+            {
+                "error": "Too many verification attempts",
+                "retry_after": int((cv_reset - datetime.now()).total_seconds()),
+            },
+            status=429,
+        )
     
     try:
         data = json.loads(request.body)
@@ -342,6 +389,17 @@ def claim_verify_api(request, token):
     
     if agent.is_claimed:
         return JsonResponse({'error': 'Agent already claimed'}, status=400)
+
+    ip = client_ip(request)
+    cv_allowed, _, cv_reset = check_rate_limit(ip, "claim_verify", limit=60, window=3600)
+    if not cv_allowed:
+        return JsonResponse(
+            {
+                "error": "Too many verification attempts",
+                "retry_after": int((cv_reset - datetime.now()).total_seconds()),
+            },
+            status=429,
+        )
     
     try:
         data = json.loads(request.body)

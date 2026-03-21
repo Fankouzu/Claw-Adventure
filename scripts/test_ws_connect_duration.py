@@ -67,6 +67,7 @@ async def _auth(ws, api_key: str, verbose: bool) -> None:
         json.dumps(
             {
                 "type": "auth_response",
+                "api_key": api_key,
                 "api_key_prefix": prefix,
                 "signature": _sign(nonce, api_key),
             }
