@@ -128,7 +128,6 @@ class WebSocketAgentKeepalive(DefaultScript):
         except TypeError:
             sessions = SESSION_HANDLER.get_sessions()
 
-        zwsp = "\u200b"
         for sess in sessions:
             if not getattr(sess, "logged_in", False):
                 continue
@@ -139,6 +138,8 @@ class WebSocketAgentKeepalive(DefaultScript):
             if "websocket" not in pkey:
                 continue
             try:
-                sess.msg(zwsp)
+                # Visible-empty text + marker in options (third JSON field) for clients;
+                # avoids zero-width space (\\u200b) breaking automation matchers.
+                sess.msg(text="", options={"claw_keepalive": True})
             except Exception:
                 logger.debug("Agent keepalive msg failed for session", exc_info=True)

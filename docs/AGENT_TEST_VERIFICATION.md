@@ -42,7 +42,8 @@ Use this when triaging reports that look like server bugs. Record notes in your 
 
 - **Evennia `IDLE_TIMEOUT`:** inherited from `evennia.settings_default` (default `-1` disables server-side idle kick). If you still see drops, check **proxy idle timeout** (Railway, nginx, Cloudflare, etc.).
 
-- **Server-side mitigation (this repo):** global script `WebSocketAgentKeepalive` sends a minimal outbound message every **20s** (override with env `AGENT_WS_KEEPALIVE_INTERVAL`) for **logged-in Agent accounts on WebSocket** only. This helps proxies that drop **silent** server→client links; **client `idle` frames are still recommended** for proxies that measure **inbound** idle only.
+- **Server-side mitigation (this repo):** global script `WebSocketAgentKeepalive` sends an outbound frame every **20s** (override with env `AGENT_WS_KEEPALIVE_INTERVAL`) for **logged-in Agent accounts on WebSocket** only: `text` is empty and **`options.claw_keepalive`** is set so clients can ignore it. See [WS_SERVICE_QUALITY.md](./WS_SERVICE_QUALITY.md).
+- **`agent_connect` policy:** for `is_agent` accounts, **other sessions for the same account are disconnected** when a new `agent_connect` succeeds (single active automation client; avoids duplicate lines and “Sharing … sessions” spam while `MULTISESSION_MODE=1` remains available for non-Agent use if needed).
 
 ## Account vs puppet / `ic` (#4–#5)
 

@@ -6,6 +6,7 @@ Loaded from server/conf/at_server_startstop.py (at_server_start).
 
 from __future__ import annotations
 
+import random
 import time
 
 from evennia.utils import logger
@@ -56,13 +57,14 @@ def install_tutorial_achievement_hooks() -> None:
         return
 
     try:
+        from evennia import search_object
         from evennia.contrib.tutorials.tutorial_world import (
             objects as tw_objects,
+            rooms as tw_rooms,
         )
         from evennia.contrib.tutorials.tutorial_world.mob import Mob
-        from evennia.contrib.tutorials.tutorial_world.rooms import (
-            IntroRoom,
-        )
+
+        IntroRoom = tw_rooms.IntroRoom
     except ImportError as exc:
         logger.log_warn(
             f"world/achievements: tutorial_world not available ({exc}); "
@@ -113,6 +115,39 @@ def install_tutorial_achievement_hooks() -> None:
             _notify_crumbling_wall(self.caller)
 
     tw_objects.CmdPressButton.func = _patched_press_func
+
+    # --- Bridge look: include {"type": "look"} for WebSocket JSON clients ---
+    def _patched_cmd_look_bridge_func(self):
+        caller = self.caller
+        bridge_position = caller.db.tutorial_bridge_position
+        location = self.obj
+        message = "|c%s|n\n%s\n%s" % (
+            location.key,
+            tw_rooms.BRIDGE_POS_MESSAGES[bridge_position],
+            random.choice(tw_rooms.BRIDGE_MOODS),
+        )
+        chars = [
+            obj
+            for obj in self.obj.contents_get(exclude=caller)
+            if obj.has_account
+        ]
+        if chars:
+            message += "\n You see: %s" % ", ".join(
+                "|c%s|n" % char.key for char in chars
+            )
+        caller.msg(text=(message, {"type": "look"}), options=None)
+
+        if bridge_position < 3 and random.random() < 0.05 and not caller.is_superuser:
+            fall_exit = search_object(self.obj.db.fall_exit)
+            if fall_exit:
+                caller.msg("|r%s|n" % tw_rooms.FALL_MESSAGE)
+                caller.move_to(fall_exit[0], quiet=True, move_type="fall")
+                self.obj.msg_contents(
+                    "A plank gives way under %s's feet and "
+                    "they fall from the bridge!" % caller.key
+                )
+
+    tw_rooms.CmdLookBridge.func = _patched_cmd_look_bridge_func
 
     # --- Tutorial Mob (ghost): combat_log + combat achievements ---
     _orig_mob_set_alive = Mob.set_alive

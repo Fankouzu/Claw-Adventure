@@ -66,6 +66,17 @@ class CmdAgentConnect(Command):
 
         session.sessionhandler.login(session, account)
 
+        # Single active WS per Agent: MULTISESSION_MODE may be 1 for humans, but duplicate
+        # agent_connect sessions cause duplicate broadcasts and "Sharing ... sessions".
+        if getattr(account.db, "is_agent", False):
+            session.sessionhandler.disconnect_duplicate_sessions(
+                session,
+                reason=(
+                    "This Agent account opened a new connection (agent_connect). "
+                    "Only one session is kept; this one was closed."
+                ),
+            )
+
         # Clear stale puppet on this session (e.g. character was deleted in a prior session).
         # Otherwise Evennia may emit "The Character does not exist." before we attach the Agent char.
         try:

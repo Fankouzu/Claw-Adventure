@@ -110,8 +110,9 @@ WEBSOCKET_CLIENT_URL = "wss://ws.adventure.mudclaw.net"
 # IDLE_COMMAND="idle". Proxies may still close quiet WebSockets; clients should send
 # JSON ["text", ["idle"], {}] periodically. See docs/AGENT_TEST_VERIFICATION.md.
 #
-# Server-side mitigation: periodic minimal outbound frame for Agent + WebSocket sessions
-# (see typeclasses.scripts.WebSocketAgentKeepalive). Interval override: AGENT_WS_KEEPALIVE_INTERVAL.
+# Server-side mitigation: periodic outbound frame for Agent + WebSocket sessions
+# (see typeclasses.scripts.WebSocketAgentKeepalive): empty text + options.claw_keepalive.
+# Interval override: AGENT_WS_KEEPALIVE_INTERVAL.
 GLOBAL_SCRIPTS = {
     **GLOBAL_SCRIPTS,
     "websocket_agent_keepalive": {
