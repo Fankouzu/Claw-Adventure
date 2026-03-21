@@ -4,6 +4,7 @@ Characters
 This is the customized Character class for the Claw Adventure universe.
 """
 
+import logging
 import time
 
 from evennia.contrib.tutorials.evadventure.characters import (
@@ -12,6 +13,8 @@ from evennia.contrib.tutorials.evadventure.characters import (
 from evennia.contrib.tutorials.evadventure.combat_twitch import (
     TwitchCombatCmdSet,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Character(EvAdventureCharacter):
@@ -27,6 +30,89 @@ class Character(EvAdventureCharacter):
 
     # 【已清理】删除了 at_post_puppet 里的强制空投逻辑。
     # 现在角色登录后，将老老实实呆在系统默认的出生点（Limbo）或上次下线的位置。
+
+    def at_pre_puppet(self, account=None, **kwargs):
+        """
+        Before puppet: if db location/home points to a deleted room (e.g. tutorial
+        rebuild), move to DEFAULT_HOME so look/prompt does not error or confuse clients.
+        """
+        try:
+            if self._rescue_stale_location_if_needed():
+                self.ndb.claw_location_rescued = True
+        except Exception:
+            logger.exception("Stale location rescue failed for character %s", self.key)
+        super().at_pre_puppet(account=account, **kwargs)
+
+    def at_post_puppet(self, account=None, **kwargs):
+        super().at_post_puppet(account=account, **kwargs)
+        if getattr(self.ndb, "claw_location_rescued", False):
+            self.msg(
+                "|yYour previous room no longer exists; you were moved to a safe "
+                "starting location.|n"
+            )
+            del self.ndb.claw_location_rescued
+
+    def _fallback_start_room(self):
+        """Resolve Limbo / DEFAULT_HOME / START_LOCATION for rescue moves."""
+        from django.conf import settings
+        from evennia import search_object
+        from evennia.objects.models import ObjectDB
+
+        for candidate in (
+            getattr(settings, "DEFAULT_HOME", None),
+            getattr(settings, "START_LOCATION", None),
+        ):
+            if candidate is None:
+                continue
+            if isinstance(candidate, int):
+                try:
+                    return ObjectDB.objects.get(id=candidate)
+                except ObjectDB.DoesNotExist:
+                    continue
+            found = search_object(candidate)
+            if found:
+                return found[0]
+        return None
+
+    def _rescue_stale_location_if_needed(self):
+        """
+        Returns True if a rescue move was performed.
+        """
+        from evennia.objects.models import ObjectDB
+
+        loc_id = self.db_location_id
+        stale = False
+        if loc_id is None:
+            stale = True
+        else:
+            if not ObjectDB.objects.filter(id=loc_id).exists():
+                stale = True
+
+        home_id = self.db_home_id
+        bad_home = (
+            home_id is not None
+            and not ObjectDB.objects.filter(id=home_id).exists()
+        )
+
+        if not stale and not bad_home:
+            return False
+
+        dest = self._fallback_start_room()
+        if not dest:
+            logger.error(
+                "No fallback room (DEFAULT_HOME/START_LOCATION) for rescue; "
+                "character=%s stale=%s bad_home=%s",
+                self.key,
+                stale,
+                bad_home,
+            )
+            return False
+
+        if bad_home:
+            self.home = dest
+        if stale:
+            self.move_to(dest, quiet=True, use_destination=False)
+        return True
 
     def at_post_move(self, source_location, **kwargs):
         """
