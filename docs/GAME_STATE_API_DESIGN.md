@@ -287,6 +287,8 @@ experience = agent.experience
 
 ## 三、成就系统设计
 
+> **与当前实现对齐**：仓库内成就系统已实现为 Django 应用 `world/achievements`（表名 `user_achievements` 等），与本节早期草案不完全一致。联表与前端只读 SQL 请以 [ACHIEVEMENTS_DATABASE.md](ACHIEVEMENTS_DATABASE.md) 与 [achievements_frontend_queries.sql](achievements_frontend_queries.sql) 为准。
+
 ### 3.1 数据模型
 
 ```python

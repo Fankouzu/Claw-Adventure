@@ -4,20 +4,52 @@ Achievement check and unlock engine.
 This module provides the core logic for checking and unlocking achievements.
 """
 
-from django.db import transaction
+from .models import Achievement, UserAchievement
+
+
+# Room / narrative unlock categories (not combat-only definitions)
+_CONTEXT_UNLOCK_CATEGORIES = ("exploration", "puzzle", "story")
 
 
 class AchievementEngine:
     """
     Achievement check and unlock engine.
 
-    Provides static methods for checking exploration and combat achievements.
+    Static methods for exploration, contextual, and combat achievements.
     """
+
+    @staticmethod
+    def _requirement_satisfied_by_context(requirement, context):
+        """
+        True if every key in requirement matches the same key in context.
+
+        Extra keys (action, puzzle, …) must appear in context with the same
+        values, so a plain room visit does not unlock gated achievements.
+        """
+        if not requirement:
+            return False
+        for key, val in requirement.items():
+            if context.get(key) != val:
+                return False
+        return True
+
+    @staticmethod
+    def _explorer_master_threshold():
+        """Rooms required for explorer_master; falls back to 16."""
+        try:
+            ach = Achievement.objects.get(key="explorer_master")
+            return int((ach.requirement or {}).get("count", 16))
+        except (Achievement.DoesNotExist, ValueError, TypeError):
+            return 16
 
     @staticmethod
     def check_exploration(agent, room_key, room_name):
         """
         Check exploration achievements when character moves to a new room.
+
+        Unlocks achievements whose requirement is fully matched by
+        {room_key, room_name} (so entries that also require action/puzzle/etc.
+        are not granted on entry alone).
 
         Args:
             agent: The Agent object
@@ -27,46 +59,99 @@ class AchievementEngine:
         Returns:
             list: List of newly unlocked Achievement objects
         """
-        from .models import ExplorationProgress, Achievement, UserAchievement
+        from .models import ExplorationProgress
 
         unlocked = []
 
-        # 1. Record exploration progress
         progress, created = ExplorationProgress.objects.get_or_create(
             agent=agent,
             room_key=room_key,
-            defaults={'room_name': room_name}
+            defaults={"room_name": room_name},
         )
 
         if not created:
-            return []  # Already visited, skip duplicate checks
+            return []
 
-        # 2. Check achievements that require visiting this room
+        context = {"room_key": room_key, "room_name": room_name}
+
         achievements = Achievement.objects.filter(
-            category__in=['exploration', 'puzzle', 'story'],
-            requirement__room_key=room_key
+            category__in=_CONTEXT_UNLOCK_CATEGORIES,
         )
 
         for ach in achievements:
-            # Check if already unlocked
-            if UserAchievement.objects.filter(agent=agent, achievement=ach).exists():
+            req = ach.requirement or {}
+            if "room_key" not in req:
                 continue
-
-            # Unlock the achievement
+            if not AchievementEngine._requirement_satisfied_by_context(
+                req, context
+            ):
+                continue
+            if UserAchievement.objects.filter(
+                agent=agent, achievement=ach
+            ).exists():
+                continue
             UserAchievement.objects.create(agent=agent, achievement=ach)
             unlocked.append(ach)
 
-        # 3. Check cumulative achievements (e.g. visited all rooms)
         total_visited = ExplorationProgress.objects.filter(agent=agent).count()
-        if total_visited >= 16:
-            master_ach = AchievementEngine._unlock_achievement(agent, 'explorer_master')
+        need = AchievementEngine._explorer_master_threshold()
+        if total_visited >= need:
+            master_ach = AchievementEngine._unlock_achievement(
+                agent, "explorer_master"
+            )
             if master_ach:
                 unlocked.append(master_ach)
 
         return unlocked
 
     @staticmethod
-    def check_combat(agent, enemy_key, enemy_name, result, damage_dealt=0, damage_taken=0):
+    def apply_context_unlock(agent, **context):
+        """
+        Unlock achievements fully matched by the given keyword context.
+
+        Call from game code for puzzle, climb, secret, speedrun, etc. Only
+        exploration / puzzle / story categories are scanned.
+
+        Example::
+
+            AchievementEngine.apply_context_unlock(
+                agent, room_key="tut#12", puzzle="broken_wall"
+            )
+
+        Returns:
+            list: Newly unlocked Achievement model instances
+        """
+        unlocked = []
+        achievements = Achievement.objects.filter(
+            category__in=_CONTEXT_UNLOCK_CATEGORIES
+        )
+
+        for ach in achievements:
+            req = ach.requirement or {}
+            if not req:
+                continue
+            if not AchievementEngine._requirement_satisfied_by_context(
+                req, context
+            ):
+                continue
+            if UserAchievement.objects.filter(
+                agent=agent, achievement=ach
+            ).exists():
+                continue
+            UserAchievement.objects.create(agent=agent, achievement=ach)
+            unlocked.append(ach)
+
+        return unlocked
+
+    @staticmethod
+    def check_combat(
+        agent,
+        enemy_key,
+        enemy_name,
+        result,
+        damage_dealt=0,
+        damage_taken=0,
+    ):
         """
         Check combat achievements when combat ends.
 
@@ -81,54 +166,56 @@ class AchievementEngine:
         Returns:
             list: List of newly unlocked Achievement objects
         """
-        from .models import CombatLog, Achievement, UserAchievement
+        from .models import CombatLog
 
         unlocked = []
 
-        # 1. Log combat result
         CombatLog.objects.create(
             agent=agent,
             enemy_key=enemy_key,
             enemy_name=enemy_name,
             result=result,
             damage_dealt=damage_dealt,
-            damage_taken=damage_taken
+            damage_taken=damage_taken,
         )
 
-        if result != 'victory':
-            return []  # Only victories unlock achievements
+        if result != "victory":
+            return []
 
-        # 2. Check combat achievements
-        total_kills = CombatLog.objects.filter(agent=agent, result='victory').count()
+        total_kills = CombatLog.objects.filter(
+            agent=agent, result="victory"
+        ).count()
 
-        # First blood - first kill
         if total_kills == 1:
-            ach = AchievementEngine._unlock_achievement(agent, 'first_blood')
+            ach = AchievementEngine._unlock_achievement(agent, "first_blood")
             if ach:
                 unlocked.append(ach)
 
-        # Ghost slayer - defeat ghost once
         enemy_kills = CombatLog.objects.filter(
             agent=agent,
-            result='victory',
-            enemy_key=enemy_key
+            result="victory",
+            enemy_key=enemy_key,
         ).count()
 
-        if enemy_key == 'ghost':
+        if enemy_key == "ghost":
             if enemy_kills >= 1:
-                ach = AchievementEngine._unlock_achievement(agent, 'ghost_slayer')
+                ach = AchievementEngine._unlock_achievement(
+                    agent, "ghost_slayer"
+                )
                 if ach:
                     unlocked.append(ach)
 
-            # Ghostbane - defeat ghost 3 times
             if enemy_kills >= 3:
-                ach = AchievementEngine._unlock_achievement(agent, 'ghostbane')
+                ach = AchievementEngine._unlock_achievement(
+                    agent, "ghostbane"
+                )
                 if ach:
                     unlocked.append(ach)
 
-        # Monster hunter - defeat 10 enemies
         if total_kills >= 10:
-            ach = AchievementEngine._unlock_achievement(agent, 'monster_hunter')
+            ach = AchievementEngine._unlock_achievement(
+                agent, "monster_hunter"
+            )
             if ach:
                 unlocked.append(ach)
 
@@ -144,15 +231,13 @@ class AchievementEngine:
             achievement_key: The Achievement's unique key
 
         Returns:
-            Achievement or None: The unlocked achievement, or None if not found/already unlocked
+            Achievement instance if newly unlocked, else None.
         """
-        from .models import Achievement, UserAchievement
-
         try:
             ach = Achievement.objects.get(key=achievement_key)
             _, created = UserAchievement.objects.get_or_create(
                 agent=agent,
-                achievement=ach
+                achievement=ach,
             )
             return ach if created else None
         except Achievement.DoesNotExist:
@@ -169,8 +254,9 @@ class AchievementEngine:
         Returns:
             QuerySet: UserAchievement objects for this agent
         """
-        from .models import UserAchievement
-        return UserAchievement.objects.filter(agent=agent).select_related('achievement')
+        return UserAchievement.objects.filter(agent=agent).select_related(
+            "achievement"
+        )
 
     @staticmethod
     def get_agent_progress(agent):
@@ -183,16 +269,17 @@ class AchievementEngine:
         Returns:
             dict: Statistics about agent's progress
         """
-        from .models import ExplorationProgress, UserAchievement
+        from .models import ExplorationProgress
 
         visited_rooms = ExplorationProgress.objects.filter(agent=agent).count()
         unlocked_count = UserAchievement.objects.filter(agent=agent).count()
-        total_points = sum(
-            ua.achievement.points for ua in UserAchievement.objects.filter(agent=agent).select_related('achievement')
+        ua_qs = UserAchievement.objects.filter(agent=agent).select_related(
+            "achievement"
         )
+        total_points = sum(ua.achievement.points for ua in ua_qs)
 
         return {
-            'rooms_visited': visited_rooms,
-            'achievements_unlocked': unlocked_count,
-            'total_points': total_points,
+            "rooms_visited": visited_rooms,
+            "achievements_unlocked": unlocked_count,
+            "total_points": total_points,
         }

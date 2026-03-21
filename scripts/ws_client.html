@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Claw Adventure WebSocket Client</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+            margin: 0;
+        }
+        h2 {
+            margin-top: 0;
+            color: #4ecca3;
+        }
+        #log {
+            background: #0f0f1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            height: 70vh;
+            overflow-y: auto;
+            padding: 15px;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        #log .msg {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #222;
+        }
+        #log .cmd {
+            color: #ffd700;
+        }
+        .controls {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4ecca3;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #3db892;
+        }
+        button.disconnect {
+            background: #e94560;
+        }
+        #status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .status-connected {
+            background: #0f0;
+            color: #000;
+        }
+        .status-disconnected {
+            background: #666;
+            color: #fff;
+        }
+        #input-container {
+            display: flex;
+            gap: 10px;
+        }
+        #input {
+            flex: 1;
+            padding: 12px;
+            background: #16213e;
+            border: 1px solid #333;
+            border-radius: 5px;
+            color: #eee;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        #input:focus {
+            outline: none;
+            border-color: #4ecca3;
+        }
+        #input:disabled {
+            background: #111;
+            color: #666;
+        }
+        /* Evennia color classes */
+        .color-000 { color: #000; }
+        .color-001 { color: #800000; }
+        .color-002 { color: #008000; }
+        .color-003 { color: #808000; }
+        .color-004 { color: #000080; }
+        .color-005 { color: #800080; }
+        .color-006 { color: #008080; }
+        .color-007 { color: #c0c0c0; }
+        .color-008 { color: #808080; }
+        .color-009 { color: #ff0000; }
+        .color-010 { color: #00ff00; }
+        .color-011 { color: #ffff00; }
+        .color-012 { color: #0000ff; }
+        .color-013 { color: #ff00ff; }
+        .color-014 { color: #00ffff; }
+        .color-015 { color: #ffffff; }
+    </style>
+</head>
+<body>
+    <h2>Claw Adventure WebSocket Client</h2>
+    <div class="controls">
+        <button onclick="connect()">连接</button>
+        <button class="disconnect" onclick="disconnect()">断开</button>
+        <span id="status" class="status-disconnected">未连接</span>
+    </div>
+    <div id="log"></div>
+    <div id="input-container">
+        <input type="text" id="input" placeholder="输入命令，按回车发送" disabled>
+    </div>
+
+    <script>
+        let ws = null;
+        const logEl = document.getElementById('log');
+        const inputEl = document.getElementById('input');
+        const statusEl = document.getElementById('status');
+        const URL = 'wss://ws.adventure.mudclaw.net';
+
+        function log(html, isCmd = false) {
+            const div = document.createElement('div');
+            div.className = 'msg' + (isCmd ? ' cmd' : '');
+            div.innerHTML = html;
+            logEl.appendChild(div);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function renderHtml(text) {
+            if (!text) return '';
+            // Convert <br> to newlines, then render HTML
+            return text
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/\n/g, '<br>');
+        }
+
+        function connect() {
+            if (ws) {
+                ws.close();
+            }
+            logEl.innerHTML = '';
+            log('<i style="color:#888">正在连接...</i>');
+            ws = new WebSocket(URL);
+
+            ws.onopen = function() {
+                log('<i style="color:#0f0">✅ 已连接</i>');
+                statusEl.textContent = '已连接';
+                statusEl.className = 'status-connected';
+                inputEl.disabled = false;
+                inputEl.focus();
+            };
+
+            ws.onmessage = function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (Array.isArray(data)) {
+                        if (data[0] === 'text' && data.length >= 2) {
+                            // Handle both string and array content
+                            let content = data[1];
+                            if (Array.isArray(content)) {
+                                content = content.join('');
+                            }
+                            log(renderHtml(content));
+                        } else if (data[0] === 'logged_in') {
+                            log('<i style="color:#0f0">✅ 登录成功</i>');
+                        } else if (data[0] === 'prompt') {
+                            // Ignore prompts or show subtly
+                        }
+                    }
+                } catch (err) {
+                    log(e.data);
+                }
+            };
+
+            ws.onclose = function() {
+                log('<i style="color:#f00">❌ 连接已关闭</i>');
+                statusEl.textContent = '已断开';
+                statusEl.className = 'status-disconnected';
+                inputEl.disabled = true;
+            };
+
+            ws.onerror = function(err) {
+                log('<i style="color:#f00">❌ 连接错误</i>');
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function send(cmd) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const msg = JSON.stringify(['text', [cmd], {}]);
+                ws.send(msg);
+                log('&gt; ' + cmd, true);
+            }
+        }
+
+        inputEl.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && inputEl.value.trim()) {
+                send(inputEl.value.trim());
+                inputEl.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

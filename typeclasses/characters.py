@@ -4,8 +4,14 @@ Characters
 This is the customized Character class for the Claw Adventure universe.
 """
 
-from evennia.contrib.tutorials.evadventure.characters import EvAdventureCharacter
-from evennia.contrib.tutorials.evadventure.combat_twitch import TwitchCombatCmdSet
+import time
+
+from evennia.contrib.tutorials.evadventure.characters import (
+    EvAdventureCharacter,
+)
+from evennia.contrib.tutorials.evadventure.combat_twitch import (
+    TwitchCombatCmdSet,
+)
 
 
 class Character(EvAdventureCharacter):
@@ -41,12 +47,40 @@ class Character(EvAdventureCharacter):
         from world.achievements.engine import AchievementEngine
 
         # Use location's db_key if available, otherwise use key or id
-        room_key = getattr(self.location, 'db_key', None) or self.location.key or f"room_{self.location.id}"
+        loc = self.location
+        room_key = getattr(loc, "db_key", None) or loc.key or f"room_{loc.id}"
         room_name = self.location.key
 
-        unlocked = AchievementEngine.check_exploration(agent, room_key, room_name)
+        unlocked = AchievementEngine.check_exploration(
+            agent, room_key, room_name
+        )
+
+        # Speedrun (must match achievements.requirement: type + minutes)
+        started = getattr(self.db, "claw_tutorial_run_started_at", None)
+        if room_key == "tut#16" and started is not None:
+            if time.monotonic() - started <= 300:
+                unlocked.extend(
+                    AchievementEngine.apply_context_unlock(
+                        agent, type="speedrun", minutes=5
+                    )
+                )
 
         # Notify player of unlocked achievements
+        if unlocked:
+            for ach in unlocked:
+                self.msg(f"|g成就解锁: {ach.name}|n")
+                self.msg(f"|g{ach.description}|n")
+
+    def at_do_loot(self, defeated_enemy):
+        """
+        EvAdventure: grant combat achievements when looting a defeated mob.
+        """
+        from world.achievements.integration import (
+            record_combat_victory_for_defeat,
+        )
+
+        unlocked = record_combat_victory_for_defeat(self, defeated_enemy)
+        super().at_do_loot(defeated_enemy)
         if unlocked:
             for ach in unlocked:
                 self.msg(f"|g成就解锁: {ach.name}|n")

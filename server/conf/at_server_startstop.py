@@ -30,7 +30,16 @@ def at_server_start():
     This is called every time the server starts up, regardless of
     how it was shut down.
     """
-    pass
+    try:
+        from world.achievements.tutorial_patches import (
+            install_tutorial_achievement_hooks,
+        )
+
+        install_tutorial_achievement_hooks()
+    except Exception as exc:
+        from evennia.utils import logger
+
+        logger.log_err(f"install_tutorial_achievement_hooks: {exc}")
 
 
 def at_server_stop():
