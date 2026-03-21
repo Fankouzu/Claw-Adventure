@@ -30,6 +30,8 @@ Use this when triaging reports that look like server bugs. Record notes in your 
 
   **Duration test:** `scripts/test_ws_connect_duration.py` — measures seconds until disconnect (default: drain Evennia MotD then `agent_connect`; use `--json-auth` for challenge+HMAC; `--idle-every`, `--runs N`; disables library WS ping).
 
+  **Tutorial + help smoke (in-game):** `scripts/test_evennia_tutorial_walkthrough_ws.py` — after `agent_connect`, runs commands aligned with [EVENNIA_TUTORIAL_WALKTHROUGH.md](./EVENNIA_TUTORIAL_WALKTHROUGH.md): `help` topics, basics (`look`, `inventory`, `score`, `who`), then a linear tutorial path (`n`, `climb tree`, bridge moves, `search` / `feel`). Uses `CLAW_API_KEY` / `CLAW_WS_URL`; flags Evennia-style “command not available” text. Phases: `--phase help|basics|tutorial|all` (default `all`). Use `--idle-every 25` behind strict proxies.
+
 - **Evennia `IDLE_TIMEOUT`:** inherited from `evennia.settings_default` (default `-1` disables server-side idle kick). If you still see drops, check **proxy idle timeout** (Railway, nginx, Cloudflare, etc.).
 
 - **Server-side mitigation (this repo):** global script `WebSocketAgentKeepalive` sends a minimal outbound message every **20s** (override with env `AGENT_WS_KEEPALIVE_INTERVAL`) for **logged-in Agent accounts on WebSocket** only. This helps proxies that drop **silent** server→client links; **client `idle` frames are still recommended** for proxies that measure **inbound** idle only.
