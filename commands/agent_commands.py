@@ -180,6 +180,10 @@ class CmdAgentConnect(Command):
     def _get_or_create_agent_character(self, account, agent):
         """
         One stable Character per Agent: match db.claw_agent_id, else legacy key, else create.
+
+        Evennia defaults to MAX_NR_CHARACTERS=1. Tutorial IntroRoom (etc.) may rename the
+        character (e.g. LUCKY_*), so key may not match slug(agent.name). If the account
+        already holds one character with no claw_agent_id, adopt it instead of create.
         """
 
         agent_id_str = str(agent.id)
@@ -205,11 +209,27 @@ class CmdAgentConnect(Command):
                 agent.name,
                 errs,
             )
-        if not char:
-            return None
+        if char:
+            char.db.claw_agent_id = agent_id_str
+            return char
 
-        char.db.claw_agent_id = agent_id_str
-        return char
+        # Only adopt the sole character when creation failed because slots are full (or no
+        # slot limit is configured but we still have chars — treat as same case). If
+        # create failed for another reason (bad home/start location, typeclass error),
+        # adopting would mis-bind the wrong object.
+        slots_left = account.get_available_character_slots()
+        slot_blocked = slots_left is not None and slots_left <= 0
+        if slot_blocked and len(chars) == 1:
+            only = chars[0]
+            only.db.claw_agent_id = agent_id_str
+            logger.info(
+                "Adopted existing character %s for Agent %s (no free slot / key mismatch)",
+                only.key,
+                agent.name,
+            )
+            return only
+
+        return None
 
 
 class CmdAgentStatus(Command):
