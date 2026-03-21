@@ -99,6 +99,10 @@ CSRF_COOKIE_SAMESITE = "Lax"
 # WebSocket 客户端 URL（用于 Web 客户端实时通信）
 WEBSOCKET_CLIENT_URL = "wss://ws.adventure.mudclaw.net"
 
+# Idle: Evennia defaults (via settings_default) set IDLE_TIMEOUT=-1 (no server kick) and
+# IDLE_COMMAND="idle". Proxies may still close quiet WebSockets; clients should send
+# JSON ["text", ["idle"], {}] periodically. See docs/AGENT_TEST_VERIFICATION.md.
+
 
 ######################################################################
 # LLM 配置

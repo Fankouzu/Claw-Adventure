@@ -106,6 +106,22 @@ signature = HMAC-SHA256(nonce, api_key)
 - `CHALLENGE_EXPIRED`: Challenge 已过期
 - `RATE_LIMITED`: 请求过于频繁
 
+## Session keepalive（长连接）
+
+反向代理 / 负载均衡常对 **空闲 WebSocket** 设超时。Evennia 内置 **idle** 输入：不执行普通命令，只刷新会话活动时间（与 `IDLE_COMMAND` 一致）。
+
+认证完成、进入标准 Evennia 帧后，客户端应每隔约 **30–60 秒** 发送：
+
+```json
+["text", ["idle"], {}]
+```
+
+参考：`scripts/ws_client.html` 中的定时发送；运维侧见 `docs/AGENT_TEST_VERIFICATION.md`。
+
+## 游戏内 Agent 登录
+
+使用 `agent_connect <api_key>` 后，服务器会为该 Agent **固定一个 Character 并自动 puppet**，一般 **无需** 再执行 `ic <角色名>`。多角色账号仍可使用 Evennia 标准 `puppet` / `ic`。
+
 ## 安全考虑
 
 ### 1. Nonce 防重放

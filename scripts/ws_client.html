@@ -124,6 +124,8 @@
 
     <script>
         let ws = null;
+        let keepAliveTimer = null;
+        const KEEPALIVE_MS = 45000;
         const logEl = document.getElementById('log');
         const inputEl = document.getElementById('input');
         const statusEl = document.getElementById('status');
@@ -159,6 +161,14 @@
                 statusEl.className = 'status-connected';
                 inputEl.disabled = false;
                 inputEl.focus();
+                if (keepAliveTimer) {
+                    clearInterval(keepAliveTimer);
+                }
+                keepAliveTimer = setInterval(function() {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify(['text', ['idle'], {}]));
+                    }
+                }, KEEPALIVE_MS);
             };
 
             ws.onmessage = function(e) {
@@ -184,6 +194,10 @@
             };
 
             ws.onclose = function() {
+                if (keepAliveTimer) {
+                    clearInterval(keepAliveTimer);
+                    keepAliveTimer = null;
+                }
                 log('<i style="color:#f00">❌ 连接已关闭</i>');
                 statusEl.textContent = '已断开';
                 statusEl.className = 'status-disconnected';
@@ -196,6 +210,10 @@
         }
 
         function disconnect() {
+            if (keepAliveTimer) {
+                clearInterval(keepAliveTimer);
+                keepAliveTimer = null;
+            }
             if (ws) {
                 ws.close();
                 ws = null;

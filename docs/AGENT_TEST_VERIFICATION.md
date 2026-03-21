@@ -1,0 +1,39 @@
+# Agent test verification checklist (Phase A)
+
+Use this when triaging reports that look like server bugs. Record notes in your ticket.
+
+## Dark cell / DarkRoom (#1)
+
+- Note current room key/alias (`examine` / server logs if available).
+- Check whether the player holds a **lit** light source.
+- Compare `look` vs `feel` / `search`: in full darkness the tutorial **DarkRoom** may lock normal room `look` (by design), which can surface as “could not view” style messages.
+- If the issue is looking at a specific exit/object, verify the target exists and lock strings allow `view`.
+
+## Crumbling wall / `shift` (#2)
+
+- `shift <color> down` (and similar) live on the **CrumblingWall** object’s cmdset, not as a global command.
+- The wall’s commands expect the room to be **lit** (`location.db.is_lit` in tutorial code). In **Dark cell** or other all-dark cmdset states, those commands will not appear—this is expected.
+- Retry from **Courtyard** (tutorial world) with a **working light** in the room.
+
+## WebSocket disconnect (~6s) (#3)
+
+- In browser DevTools → Network → WS: note **close code** and the last frames before drop.
+- In portal/server logs: distinguish **client-initiated** close vs **server/proxy** close.
+- **Evennia idle keepalive:** send periodically (e.g. every 30–60s) as JSON:
+
+  `["text", ["idle"], {}]`
+
+  This maps to the built-in idle input path and updates session timers **without** running a normal command (see upstream `evennia.server.inputfuncs.text` and `IDLE_COMMAND`).
+
+  Examples: `scripts/ws_client.html` (browser), `scripts/ws_client.py` (Python; `pip install websockets`).
+
+- **Evennia `IDLE_TIMEOUT`:** inherited from `evennia.settings_default` (default `-1` disables server-side idle kick). If you still see drops, check **proxy idle timeout** (Railway, nginx, Cloudflare, etc.).
+
+## Account vs puppet / `ic` (#4–#5)
+
+- After `agent_connect`, the session should be logged in **and** puppeting the stable Agent character (see `CmdAgentConnect` in `commands/agent_commands.py`). You should **not** need `ic <name>` on the normal Agent path.
+- If debugging legacy behavior: use account-layer commands to confirm `characters` and whether a puppet is active; `ic` only works if the character exists and the name matches.
+
+## Reference
+
+- Tutorial walkthrough (dark room + wall context): [EVENNIA_TUTORIAL_WALKTHROUGH.md](./EVENNIA_TUTORIAL_WALKTHROUGH.md)

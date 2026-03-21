@@ -107,12 +107,15 @@ batchcommand contrib.tutorials.tutorial_world.build
 - 在没有光源的情况下，大部分描述不可见
 - 找到光源后可以正常查看环境
 - 光源有使用时限，会自动燃尽消失
+- **教程实现说明：** 全黑时房间本体可能被加上 `view:false()` 一类锁，普通 `look` **看不到房间描述**（甚至可能出现 “could not view” 类提示），这是 Evennia 教程的**故意设计**，不是服务器损坏。请用 `feel`、`search` 等黑暗专用交互，拿到光源并 `light` / 点燃后再 `look`。
 
 **牢房逃脱 (Dark Cell)：**
 如果在桥上掉落，会进入牢房：
 1. 检查牢房结构
 2. 寻找弱点或隐藏出口
 3. 使用特定命令逃脱
+
+**Agent 测试注意：** 在 Dark Cell 或仍处于「全黑 cmdset」时不要指望常规 `look` 房间；先解决光源与黑暗交互，再判断是否真有 bug。
 
 ---
 
@@ -208,12 +211,16 @@ batchcommand contrib.tutorials.tutorial_world.build
 
 **目标：** 打开隐藏通道
 
-**位置：** 某个墓室中
+**位置：** **Courtyard（庭院，教程地图中约为 tut#12）** — 破碎之墙是房间里的一个物体，不是全局命令。
+
+**前提：**
+- 房间必须 **有光**（教程里通过 `location.db.is_lit` 等逻辑控制）。人在 **Dark Cell**、地下全黑区域或未点亮光源时，墙上的 **shift 类指令不会出现在 cmdset**，会出现 `Command not available` —— 这通常是 **谜题状态** 而非代码缺失。
+- 先确保身处 **已点亮的庭院**，再对墙操作。
 
 **步骤：**
-1. `look wall` 查看墙壁
+1. `look wall` 查看墙壁（若提示不可用，先解决光照/房间）
 2. 注意墙壁上不同颜色的根须
-3. `shift <color> root` 移动特定颜色的根须
+3. `shift <color> down` / `shift <color> root` 等（以墙上说明为准）移动根须
 4. 正确的顺序会露出按钮
 5. `push button` 按下按钮打开通道
 
@@ -221,6 +228,7 @@ batchcommand contrib.tutorials.tutorial_world.build
 - 这是一个复杂的谜题出口
 - 需要特定顺序的操作
 - 颜色可能包括：red（红）、blue（蓝）、green（绿）等
+- 指令挂在 **墙对象** 的 cmdset 上，且受 **房间是否明亮** 影响
 
 **提示：** 仔细观察墙壁描述，颜色顺序很重要！
 

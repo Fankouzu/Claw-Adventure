@@ -4,9 +4,10 @@ Agent 认证命令
 提供 Agent 通过 API Key 连接游戏的命令。
 """
 from evennia.commands.command import Command
-from evennia.utils import create, utils
+from evennia.utils import create
 from django.utils import timezone
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,6 @@ class CmdAgentConnect(Command):
     
     def func(self):
         """执行 Agent 连接"""
-        from world.agent_auth.models import Agent
         from world.agent_auth.auth import verify_api_key
         
         caller = self.caller
@@ -76,6 +76,31 @@ class CmdAgentConnect(Command):
         # 登录 Session
         # 使用 sessionhandler.login() 方法
         session.sessionhandler.login(session, account)
+
+        character = self._get_or_create_agent_character(account, agent)
+        if not character:
+            caller.msg("|rCould not create or load a character for this Agent.|n")
+            session.sessionhandler.disconnect(session)
+            return
+
+        try:
+            account.puppet_object(session, character)
+        except RuntimeError as exc:
+            logger.error("Agent puppet failed for %s: %s", agent.name, exc)
+            caller.msg("|rCould not enter the game with your character.|n")
+            session.sessionhandler.disconnect(session)
+            return
+
+        if session.get_puppet() is not character:
+            logger.error(
+                "Agent %s: puppet_object did not attach character %s to session",
+                agent.name,
+                character.key,
+            )
+            caller.msg("|rCould not enter the game with your character.|n")
+            session.sessionhandler.disconnect(session)
+            return
+
         # 更新 Agent 信息
         agent.update_last_active()
         
@@ -89,7 +114,7 @@ class CmdAgentConnect(Command):
         
         # 发送欢迎消息
         caller.msg(f"|gWelcome, Agent {agent.name}!|n")
-        caller.msg(f"You are now connected to the Adventure.")
+        caller.msg(f"You are now connected to the Adventure as |c{character.key}|n.")
         
         logger.info(f"Agent {agent.name} (ID: {agent.id}) connected successfully")
     
@@ -142,6 +167,50 @@ class CmdAgentConnect(Command):
         except Exception as e:
             logger.error(f"Failed to create session record: {e}")
 
+    @staticmethod
+    def _slug_character_key(name, agent_id):
+        """Make a valid object key from Agent.name; fallback to id-derived key."""
+        s = re.sub(r"[^a-zA-Z0-9_-]", "_", (name or "").strip())
+        s = re.sub(r"_+", "_", s).strip("_")
+        if not s:
+            compact = str(agent_id).replace("-", "")
+            s = f"A_{compact[:12]}"
+        return s[:60]
+
+    def _get_or_create_agent_character(self, account, agent):
+        """
+        One stable Character per Agent: match db.claw_agent_id, else legacy key, else create.
+        """
+
+        agent_id_str = str(agent.id)
+        chars = account.characters.all()
+
+        for char in chars:
+            if getattr(char.db, "claw_agent_id", None) == agent_id_str:
+                return char
+
+        want_key = self._slug_character_key(agent.name, agent.id)
+        for char in chars:
+            if char.key == want_key:
+                char.db.claw_agent_id = agent_id_str
+                return char
+
+        char, errs = account.create_character(
+            key=want_key,
+            typeclass="typeclasses.characters.Character",
+        )
+        if errs:
+            logger.error(
+                "create_character errors for Agent %s: %s",
+                agent.name,
+                errs,
+            )
+        if not char:
+            return None
+
+        char.db.claw_agent_id = agent_id_str
+        return char
+
 
 class CmdAgentStatus(Command):
     """
@@ -157,6 +226,7 @@ class CmdAgentStatus(Command):
     aliases = ["agents"]
     locks = "cmd:all()"  # Agent 登录后可用
     help_category = "Agent"
+
     def func(self):
         """显示 Agent 状态"""
         from world.agent_auth.models import Agent
