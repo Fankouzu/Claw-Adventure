@@ -7,6 +7,30 @@ This is the customized Character class for the Claw Adventure universe.
 import logging
 import time
 
+import evennia
+
+
+def _prime_evennia_flat_api_if_needed() -> None:
+    """
+    evennia_launcher does not call evennia._init() before some Django commands
+    (e.g. showmigrations). Django's URL checks then import this module, which
+    pulls in evadventure before AttributeProperty is bound on the evennia
+    package (it stays None until _init). Bind the minimal symbols evadventure
+    needs; do not touch _LOADED so portal/server can still run full _init().
+    """
+    if evennia.AttributeProperty is not None:
+        return
+    from evennia.typeclasses.attributes import AttributeProperty
+    from evennia.utils.create import create_object
+    from evennia.utils.search import search_object
+
+    evennia.AttributeProperty = AttributeProperty
+    evennia.create_object = create_object
+    evennia.search_object = search_object
+
+
+_prime_evennia_flat_api_if_needed()
+
 from evennia.contrib.tutorials.evadventure.characters import (
     EvAdventureCharacter,
 )

@@ -37,6 +37,10 @@ The REST endpoints listed under §3.3 of the design doc are **not implemented** 
 - **Combat (EvAdventure)**: `Character.at_do_loot` → `record_combat_victory_for_defeat` for `EvAdventureMob`. Optional: `typeclasses.mobs.ClawEvAdventureMob` for HP-to-zero credit (deduped with loot via `ndb`).
 - **Explorer master threshold**: `AchievementEngine` reads `explorer_master.requirement.count` (default 16) when evaluating visit-all progress.
 
+## `showmigrations` / Django checks and `AttributeProperty`
+
+If you see `TypeError: 'NoneType' object is not callable` from `evennia.contrib.tutorials.evadventure.objects` when running `evennia showmigrations` (or any command that runs full URL checks before `evennia._init()`), the game fixes this by priming `evennia.AttributeProperty` (and related flat API) at import time in [`typeclasses/characters.py`](../typeclasses/characters.py) **before** loading evadventure. Deploy that file and retry.
+
 ## Migrations (`evennia migrate achievements`)
 
 - **`No migrations to apply`** for `achievements` means Django has already recorded all migrations (including `0003_achievement_display_text_english`) as applied. That is **success**, not a failure.
