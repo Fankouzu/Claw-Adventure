@@ -15,7 +15,8 @@ Examples:
   python scripts/test_evennia_tutorial_walkthrough_ws.py --verbose
   python scripts/test_evennia_tutorial_walkthrough_ws.py --phase help
   python scripts/test_evennia_tutorial_walkthrough_ws.py --idle-every 25
-  # Prefer a single WS client; use --quiet-multisession to hide the sharing warning
+  # Prefer a single WS client; --strict-single-session exits 3 if banner shows shared puppet
+  # --quiet-multisession hides the sharing warning (script still runs)
 """
 from __future__ import annotations
 
@@ -77,6 +78,18 @@ def _parse_character_key(banner: str) -> str | None:
     return m.group(1) if m else None
 
 
+def _banner_shows_shared_puppet(banner: str) -> bool:
+    bl = banner.lower()
+    return "session" in bl and (
+        "sharing" in bl
+        or "shared from another" in bl
+        or "now shared from" in bl
+    )
+
+
+_NOPE_CMD_FAIL_RE = re.compile(r"command\s+['\"]nope['\"]", re.I)
+
+
 async def _recover_if_needed(
     ws,
     text: str,
@@ -85,7 +98,7 @@ async def _recover_if_needed(
     quiet_after: float,
     step_timeout: float,
     verbose: bool,
-) -> str:
+) -> tuple[str, str | None]:
     """
     Cancel chardelete get_input prompt; re-puppet after OOC.
 
@@ -93,11 +106,26 @@ async def _recover_if_needed(
     Character, a bare line like "no" is parsed by the *character* cmdset first
     (nomatch -> "Command 'no' is not available"), so it never reaches get_input.
     We unpuppet (ooc) then send any non-yes line (e.g. nope) to abort deletion.
+
+    With **multisession**, get_input may be bound to another client: ooc/nope may
+    not cancel the prompt and the character may already be deleted. Returns
+    (text, character_key_or_None) with key cleared if the character is gone.
     """
     low = text.lower()
     out = text
-    did_chardelete_abort = False
+    alive_key = char_key
+    delete_cancelled = False
+
     if "permanently destroy" in low and "continue yes" in low:
+        if "has been destroyed" in low:
+            if verbose:
+                print(
+                    "[recover] chardelete text present but character already destroyed "
+                    "(other session likely confirmed) — skip ooc/nope",
+                    flush=True,
+                )
+            return out, None
+
         if verbose:
             print(
                 "[recover] chardelete prompt: sending ooc then nope (abort get_input)",
@@ -119,26 +147,51 @@ async def _recover_if_needed(
             verbose=verbose,
         )
         low = out.lower()
-        did_chardelete_abort = True
+        if "has been destroyed" in low or "not a valid character choice" in low:
+            if verbose:
+                print("[recover] character gone after chardelete race — stop ic", flush=True)
+            return out, None
+        nope_failed = bool(_NOPE_CMD_FAIL_RE.search(out))
+        aborted = "deletion was aborted" in low
+        if nope_failed and not aborted:
+            if verbose:
+                print(
+                    "[recover] nope did not reach get_input (multisession or stale prompt) "
+                    "— skip auto ic from chardelete path",
+                    flush=True,
+                )
+        else:
+            delete_cancelled = aborted or not nope_failed
+
+    if alive_key and (
+        "has been destroyed" in low or "not a valid character choice" in low
+    ):
+        alive_key = None
+
     need_ic = bool(
-        char_key
+        alive_key
         and (
-            did_chardelete_abort
+            delete_cancelled
             or "out-of-character (ooc)" in low
             or "you go ooc" in low
         )
     )
     if need_ic:
         if verbose:
-            print(f"[recover] sending ic {char_key}", flush=True)
-        await _send_cmd(ws, f"ic {char_key}")
+            print(f"[recover] sending ic {alive_key}", flush=True)
+        await _send_cmd(ws, f"ic {alive_key}")
         out += await _collect_burst(
             ws,
             quiet_after_last=quiet_after,
             max_seconds=min(20.0, step_timeout),
             verbose=verbose,
         )
-    return out
+        low = out.lower()
+        if "not a valid character choice" in low:
+            if verbose:
+                print("[recover] ic failed — character no longer available", flush=True)
+            alive_key = None
+    return out, alive_key
 
 
 async def _drain_initial_evennia(ws, max_seconds: float, verbose: bool) -> None:
@@ -289,12 +342,22 @@ async def run_walkthrough(args: argparse.Namespace) -> int:
             print(f"[after agent_connect]\n{banner[:2000]}\n---", flush=True)
         if char_key and args.verbose:
             print(f"[parsed character key: {char_key!r}]", flush=True)
-        if not args.quiet_multisession and "sharing" in banner.lower():
-            print(
-                "WARNING: multisession (shared puppet) detected — close other clients "
-                "to avoid chardelete races and duplicated output.",
-                file=sys.stderr,
-            )
+        if _banner_shows_shared_puppet(banner):
+            if args.strict_single_session:
+                print(
+                    "ERROR: shared puppet / multisession detected in banner. "
+                    "Close all other WebSocket or browser sessions for this Agent, then retry. "
+                    "(Without --strict-single-session the script continues but results are unreliable.)",
+                    file=sys.stderr,
+                )
+                return 3
+            if not args.quiet_multisession:
+                print(
+                    "WARNING: multisession (shared puppet) detected — close other clients "
+                    "to avoid chardelete races and duplicated output. "
+                    "Use --strict-single-session to fail fast, or --quiet-multisession to hide this.",
+                    file=sys.stderr,
+                )
 
         idle_task = None
         if args.idle_every and args.idle_every > 0:
@@ -313,7 +376,7 @@ async def run_walkthrough(args: argparse.Namespace) -> int:
                     max_seconds=args.step_timeout,
                     verbose=args.verbose,
                 )
-                text = await _recover_if_needed(
+                text, char_key = await _recover_if_needed(
                     ws,
                     text,
                     char_key,
@@ -379,6 +442,11 @@ def main() -> int:
         "--quiet-multisession",
         action="store_true",
         help="Do not print stderr warning when banner shows shared-puppet / multisession",
+    )
+    p.add_argument(
+        "--strict-single-session",
+        action="store_true",
+        help="Exit with code 3 if agent_connect banner shows shared puppet (multisession)",
     )
     args = p.parse_args()
     if not args.api_key:
