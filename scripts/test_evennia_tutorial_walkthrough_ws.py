@@ -325,16 +325,21 @@ def _steps_tutorial_path(*, skip_limbo_adventure: bool) -> list[tuple[str, dict]
     steps.extend(
         [
             ("look", {}),
-            ("n", {"note": "Intro -> Cliff"}),
+            # Intro -> Cliff: build.ev uses "begin adventure;begin;start", not north/n
+            ("begin", {"note": "Intro -> Cliff (tutorial exit aliases)"}),
             ("look", {}),
             ("climb tree", {}),
             ("look", {}),
-            ("n", {"note": "Cliff -> Bridge — send quickly"}),
-            ("n", {"note": "Bridge crossing (second n if room is wide)"}),
+            # Cliff exit to bridge: east/e/bridge (build.ev). BridgeRoom uses east
+            # five times (positions 0..4) before exiting east to gatehouse.
+            ("east", {"note": "Cliff -> bridge room"}),
+            ("east", {"note": "bridge step 1/5"}),
+            ("east", {"note": "bridge step 2/5"}),
+            ("east", {"note": "bridge step 3/5"}),
+            ("east", {"note": "bridge step 4/5"}),
+            ("east", {"note": "bridge step 5/5 -> gatehouse"}),
             ("look", {}),
-            ("search", {"quiet_after_last": 2.0}),
-            ("feel", {}),
-            ("feel around", {}),
+            # search/feel are DarkRoom aliases only (e.g. dark cell tut#08), not global
         ]
     )
     return steps

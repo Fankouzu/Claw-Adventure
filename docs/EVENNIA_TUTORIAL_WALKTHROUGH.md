@@ -13,7 +13,9 @@ batchcommand contrib.tutorials.tutorial_world.build
 **游玩准备：**
 - 使用 `quell` 命令降低权限为普通玩家身份
 - 超级用户会跳过某些检查，影响游戏体验
-- 若角色在 **Limbo**（传送门房间），出口一般为 **`adventure`**，进入教程世界后再按 Intro 的 **`north`/`n`** 等推进；不要假设在 Limbo 也能用 `n` 离开
+- 若角色在 **Limbo**（传送门房间），出口一般为 **`adventure`**。进入 **Intro** 后，离开到悬崖的出口在 `build.ev` 里是 **`begin adventure` / `begin` / `start`**，不是 `north`/`n`
+- **吊桥 (BridgeRoom)** 没有普通出口，靠房间上的 **`east`/`e`**（多步）穿过；不是 `north`/`n`
+- **`search` / `feel` / `feel around`** 是 **DarkRoom** 里对 `look` 的别名，只在暗牢等黑暗房间有效；在别处输入会落到账号层并出现 nomatch
 
 ---
 
@@ -24,8 +26,9 @@ batchcommand contrib.tutorials.tutorial_world.build
                          │
                     [Ancient Tomb] (tut#16) - 最终目标
                          │
-    [Intro] ──► [Cliff] ──► [Bridge] ──► [Underground] ──► [Gatehouse] ──► [Temple] ──► [Tombs]
-    (tut#01)    (tut#02)    (tut#03)      (tut#04-tut#07)     (tut#08)        (tut#09)     (tut#10-15)
+    [Intro] ──► [Cliff] ──► [Bridge] ──► … ──► [Gatehouse] ──► …
+    (tut#01)    (tut#02)    (tut#05)           (tut#09)      (tut#10+)
+    可选: Cliff 爬树后 `north` → [Outside Inn] (tut#03) 等支线
                    │
               [Inn] (可选)
 ```
@@ -36,13 +39,14 @@ batchcommand contrib.tutorials.tutorial_world.build
 |--------|------|------|------|
 | tut#01 | Intro Room | IntroRoom | 游戏入口，设置玩家属性 |
 | tut#02 | Cliff | WeatherRoom | 悬崖，有天气系统，可攀爬树木 |
-| tut#03 | Bridge | BridgeRoom | 危险的桥，需要快速通过 |
-| tut#04 | Underground Passage | TutorialRoom | 地下通道入口 |
-| tut#05 | Underground | DarkRoom | 黑暗房间，需要光源 |
-| tut#06 | Dark Cell | DarkRoom | 牢房，失败后的惩罚区域 |
-| tut#07 | Underground (继续) | TutorialRoom | 地下通道延续 |
-| tut#08 | Gatehouse | TutorialRoom | 门房，有巡逻怪物 |
-| tut#09 | Temple | TutorialRoom | 神庙，有谜题元素 |
+| tut#03 | Outside Evennia Inn 等 | WeatherRoom | 爬树解锁 `north` 后的隐藏路径相关区域（见 `build.ev`） |
+| tut#04 | Evennia Inn | TutorialRoom | 旅店室内等（批次文件顺序以你库为准） |
+| tut#05 | The old bridge | BridgeRoom | 吊桥，多步 `east`/`west` |
+| tut#06 | Protruding ledge | WeatherRoom | 桥上坠落落点（非主暗房谜题） |
+| tut#07 | Underground passages | TutorialRoom | 地下通道枢纽 |
+| tut#08 | Dark cell | DarkRoom | 暗牢；`feel`/`search` 等黑暗交互在此类房间 |
+| tut#09 | Ruined gatehouse | TutorialRoom | 过桥后东门楼 |
+| tut#10+ | Inner wall / courtyard / … | 多种 | 城堡废墟巡逻区等 |
 | tut#10-15 | Tombs | TutorialRoom | 墓室群，需要找到正确的墓室 |
 | tut#16 | Ancient Tomb | TutorialRoom | 古老墓穴，最终目标 |
 
@@ -56,8 +60,8 @@ batchcommand contrib.tutorials.tutorial_world.build
 
 **步骤：**
 1. 使用 `look` 查看周围环境
-2. 阅读提示信息
-3. 向北走 `north` 或 `n` 离开
+2. 阅读提示信息（文案会提示写 **`begin`** 开始任务）
+3. 使用 **`begin`**、**`start`** 或完整短语 **`begin adventure`** 离开 Intro（与 `contrib.tutorials.tutorial_world.build` 里悬崖入口的 exit 别名一致）
 
 **技术说明：** IntroRoom 会自动设置玩家属性，包括权限和初始状态。
 
@@ -82,16 +86,17 @@ batchcommand contrib.tutorials.tutorial_world.build
 
 **目标：** 安全通过桥梁而不掉落
 
-**房间机制：** BridgeRoom 是一个特殊的房间，模拟大型空间需要多步穿越。
+**房间机制：** BridgeRoom 是一个特殊的房间，模拟大型空间需要多步穿越；**没有普通出口**，由房间 CmdSet 提供 **`east`/`west`**。
 
 **步骤：**
-1. `look` 观察桥的状态
-2. 快速使用 `north` 或 `n` 通过
-3. **警告：** 停留过久会触发掉落机制！
+1. 在悬崖 (Cliff) 用 **`east`**（或 **`e`** / **`bridge`**）进入桥房间
+2. `look` 观察桥的状态（桥上有定制的 `look`，并有概率坠落）
+3. 连续多次 **`east`** 走到东端（默认需 **5 次** `east` 从西岸入口走到出口），直至进入门楼一侧
+4. **警告：** 每次 `look` 在西半段桥上有小概率坠落；weather ticker 也会刷氛围——不要误以为卡死
 
-**失败惩罚：** 如果掉落，会被传送到 Dark Cell (tut#06)
+**失败惩罚：** 坠落会进 **暗牢 (Dark cell)** 等区域（以你世界里的 `build.ev` / dbref 为准）
 
-**技术实现：** 使用 ticker 系统计时，超时触发掉落。
+**技术实现：** `tutorial_bridge_position` 计数 + `CmdEast`/`CmdWest`；与「用 `n` 快速连穿」不是同一机制。
 
 ---
 
