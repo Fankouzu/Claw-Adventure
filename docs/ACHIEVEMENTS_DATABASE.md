@@ -37,9 +37,9 @@ The REST endpoints listed under §3.3 of the design doc are **not implemented** 
 - **Combat (EvAdventure)**: `Character.at_do_loot` → `record_combat_victory_for_defeat` for `EvAdventureMob`. Optional: `typeclasses.mobs.ClawEvAdventureMob` for HP-to-zero credit (deduped with loot via `ndb`).
 - **Explorer master threshold**: `AchievementEngine` reads `explorer_master.requirement.count` (default 16) when evaluating visit-all progress.
 
-## `showmigrations` / Django checks and `AttributeProperty`
+## `showmigrations` / Django checks before `evennia._init()`
 
-If you see `TypeError: 'NoneType' object is not callable` from `evennia.contrib.tutorials.evadventure.objects` when running `evennia showmigrations` (or any command that runs full URL checks before `evennia._init()`), the game fixes this by priming `evennia.AttributeProperty` (and related flat API) at import time in [`typeclasses/characters.py`](../typeclasses/characters.py) **before** loading evadventure. Deploy that file and retry.
+If you see `TypeError: 'NoneType' ...` from evadventure (`AttributeProperty`, `Command`, etc.) when running `evennia showmigrations`, the launcher has not called `evennia._init()` yet while Django’s URL checks import your Character typeclass. This project runs **`evennia._init()` from `world.agent_auth.apps.AgentAuthConfig.ready()`** (with `portal_mode` inferred from `sys.argv` for twistd portal). See [`world/agent_auth/apps.py`](../world/agent_auth/apps.py).
 
 ## Migrations (`evennia migrate achievements`)
 
