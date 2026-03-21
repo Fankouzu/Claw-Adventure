@@ -10,14 +10,14 @@ Dependency: pip install websockets
 
 Examples:
   export CLAW_API_KEY='claw_live_...'
-  # Silent after auth + agent_connect (stress proxy idle)
+  # Production wss (MotD first, no JSON challenge): silent + agent_connect
   python scripts/test_ws_connect_duration.py
 
-  # With Evennia idle every 25s (expected to last longer behind strict proxies)
-  python scripts/test_ws_connect_duration.py --idle-every 25
+  # MCP-style JSON auth challenge first
+  python scripts/test_ws_connect_duration.py --json-auth
 
-  # Auth only, no game login
-  python scripts/test_ws_connect_duration.py --no-agent-connect --max-wait 300
+  # With Evennia idle every 25s (longer behind strict proxies)
+  python scripts/test_ws_connect_duration.py --idle-every 25
 
   # Three runs, average
   python scripts/test_ws_connect_duration.py --runs 3
@@ -42,11 +42,25 @@ def _sign(nonce: str, api_key: str) -> str:
     ).hexdigest()
 
 
+async def _recv_json(ws, timeout: float = 15.0):
+    raw = await asyncio.wait_for(ws.recv(), timeout=timeout)
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", errors="replace")
+    return json.loads(raw)
+
+
 async def _auth(ws, api_key: str, verbose: bool) -> None:
-    raw = await ws.recv()
-    challenge = json.loads(raw)
-    if challenge.get("type") != "auth_challenge":
-        raise RuntimeError(f"Expected auth_challenge, got: {challenge!r}")
+    challenge = None
+    for _ in range(20):
+        data = await _recv_json(ws)
+        if isinstance(data, dict) and data.get("type") == "auth_challenge":
+            challenge = data
+            break
+        if verbose:
+            print(f"[{time.monotonic():.3f}] pre-auth frame: {data!r}", flush=True)
+    if not challenge:
+        raise RuntimeError("Never received auth_challenge")
+
     nonce = challenge["nonce"]
     prefix = api_key[:20]
     await ws.send(
@@ -58,8 +72,19 @@ async def _auth(ws, api_key: str, verbose: bool) -> None:
             }
         )
     )
-    result = json.loads(await ws.recv())
-    if result.get("type") != "auth_result" or result.get("status") != "success":
+
+    result = None
+    for _ in range(20):
+        data = await _recv_json(ws)
+        if isinstance(data, dict) and data.get("type") == "auth_result":
+            result = data
+            break
+        if verbose:
+            print(f"[{time.monotonic():.3f}] post-response frame: {data!r}", flush=True)
+
+    if not result:
+        raise RuntimeError("Never received auth_result")
+    if result.get("status") != "success":
         raise RuntimeError(f"Auth failed: {result!r}")
     if verbose:
         print(f"[{time.monotonic():.3f}] auth ok agent={result.get('agent_name')!r}", flush=True)
@@ -100,6 +125,20 @@ async def _recv_loop(ws, verbose: bool, log_json: bool, close_info: dict) -> Non
         close_info["reason"] = e.reason or ""
 
 
+async def _drain_initial_evennia(ws, max_seconds: float, verbose: bool) -> None:
+    """Consume MotD / banner frames (production WS often has no JSON auth_challenge)."""
+    deadline = time.monotonic() + max_seconds
+    while time.monotonic() < deadline:
+        try:
+            raw = await asyncio.wait_for(ws.recv(), timeout=0.35)
+        except asyncio.TimeoutError:
+            break
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8", errors="replace")
+        if verbose:
+            print(f"[{time.monotonic():.3f}] drain <- {raw[:160]!r}...", flush=True)
+
+
 async def run_once(args: argparse.Namespace) -> float:
     import websockets
 
@@ -114,7 +153,10 @@ async def run_once(args: argparse.Namespace) -> float:
         ping_timeout=None,
     ) as ws:
         t_after_connect = time.monotonic()
-        await _auth(ws, api_key, args.verbose)
+        if args.json_auth:
+            await _auth(ws, api_key, args.verbose)
+        else:
+            await _drain_initial_evennia(ws, args.drain_seconds, args.verbose)
 
         if args.agent_connect:
             cmd = f"agent_connect {api_key}"
@@ -181,7 +223,10 @@ async def run_once(args: argparse.Namespace) -> float:
 
 def main() -> None:
     p = argparse.ArgumentParser(
-        description="Test WebSocket persistence after Agent auth (optional agent_connect + idle)."
+        description=(
+            "Test WebSocket persistence: default = Evennia banner drain + agent_connect; "
+            "use --json-auth for challenge+HMAC flow."
+        )
     )
     p.add_argument("--url", default=os.environ.get("CLAW_WS_URL", "wss://ws.adventure.mudclaw.net"))
     p.add_argument("--api-key", default=os.environ.get("CLAW_API_KEY", ""))
@@ -213,6 +258,17 @@ def main() -> None:
     p.add_argument("--runs", type=int, default=1, help="Repeat test N times and print summary")
     p.add_argument("--verbose", "-v", action="store_true")
     p.add_argument("--log-json", action="store_true", help="Print each incoming JSON message")
+    p.add_argument(
+        "--json-auth",
+        action="store_true",
+        help="Use challenge+HMAC JSON auth (MCP-style). Default: Evennia MotD then agent_connect.",
+    )
+    p.add_argument(
+        "--drain-seconds",
+        type=float,
+        default=3.0,
+        help="When not using --json-auth, max time to drain banner frames before agent_connect",
+    )
     args = p.parse_args()
 
     if not args.api_key:

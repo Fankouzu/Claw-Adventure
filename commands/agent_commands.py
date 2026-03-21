@@ -154,14 +154,29 @@ class CmdAgentConnect(Command):
             logger.error(f"Failed to create account for Agent {agent.name}: {e}")
             return None
     
+    @staticmethod
+    def _session_client_ip(session):
+        """
+        Normalize session.address for PostgreSQL inet (avoid str[0] -> first char bug).
+        """
+        addr = getattr(session, "address", None)
+        if not addr:
+            return None
+        if isinstance(addr, str):
+            host = addr.split(":")[0].split("%")[0].strip()
+            return host or None
+        if isinstance(addr, (list, tuple)) and len(addr) >= 1:
+            return str(addr[0])
+        return None
+
     def _create_session_record(self, agent, session):
         """创建 Agent 会话记录"""
         from world.agent_auth.models import AgentSession
-        
+
         try:
             AgentSession.objects.create(
                 agent=agent,
-                ip_address=session.address[0] if hasattr(session, 'address') and session.address else None,
+                ip_address=self._session_client_ip(session),
                 user_agent="MCP Bridge"  # Agent 通常通过 MCP 连接
             )
         except Exception as e:

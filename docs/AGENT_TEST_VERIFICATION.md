@@ -27,7 +27,7 @@ Use this when triaging reports that look like server bugs. Record notes in your 
 
   Examples: `scripts/ws_client.html` (browser), `scripts/ws_client.py` (Python; `pip install websockets`).
 
-  **Duration test:** `scripts/test_ws_connect_duration.py` — measures seconds until disconnect (optional `--idle-every`, `--no-agent-connect`, `--runs N`; disables library WS ping to stress proxy idle).
+  **Duration test:** `scripts/test_ws_connect_duration.py` — measures seconds until disconnect (default: drain Evennia MotD then `agent_connect`; use `--json-auth` for challenge+HMAC; `--idle-every`, `--runs N`; disables library WS ping).
 
 - **Evennia `IDLE_TIMEOUT`:** inherited from `evennia.settings_default` (default `-1` disables server-side idle kick). If you still see drops, check **proxy idle timeout** (Railway, nginx, Cloudflare, etc.).
 
