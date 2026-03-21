@@ -17,6 +17,7 @@ Use this when triaging reports that look like server bugs. Record notes in your 
 
 ## WebSocket disconnect (~6s) (#3)
 
+- If the close **reason** is `Logged in from elsewhere`, that was **MULTISESSION_MODE=0** kicking the older session when the **same account** opened a new connection—not proxy idle. Production uses **MULTISESSION_MODE=1** so multiple Agent/observer clients can stay connected.
 - In browser DevTools → Network → WS: note **close code** and the last frames before drop.
 - In portal/server logs: distinguish **client-initiated** close vs **server/proxy** close.
 - **Evennia idle keepalive:** send periodically (e.g. every 30–60s) as JSON:

@@ -34,6 +34,12 @@ from evennia.settings_default import *
 # This is the name of your game. Make it catchy!
 SERVERNAME = "claw adventure"
 
+# Evennia default MULTISESSION_MODE=0 logs out the previous session when the same
+# account connects again ("Logged in from elsewhere"). Agent automation often uses
+# multiple WebSocket clients (MCP, scripts, observers); mode 1 keeps all sessions
+# and shares output between them.
+MULTISESSION_MODE = 1
+
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.
