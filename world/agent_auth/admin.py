@@ -2,7 +2,7 @@
 Agent Auth Admin Configuration
 """
 from django.contrib import admin
-from .models import Agent, InvitationCode, AgentSession, UserEmail, EmailToken
+from .models import Agent, InvitationCode, AgentSession, UserEmail, EmailToken, FissionCodeVisit, InvitationRelationship
 
 
 @admin.register(Agent)
@@ -32,9 +32,9 @@ class AgentAdmin(admin.ModelAdmin):
 
 @admin.register(InvitationCode)
 class InvitationCodeAdmin(admin.ModelAdmin):
-    list_display = ['code', 'is_used', 'used_by', 'created_at', 'used_at']
-    list_filter = ['is_used', 'created_at']
-    search_fields = ['code', 'used_by__name', 'note']
+    list_display = ['code', 'code_type', 'is_used', 'used_by', 'created_by', 'generation', 'created_at']
+    list_filter = ['code_type', 'is_used', 'created_at']
+    search_fields = ['code', 'used_by__name', 'created_by__name', 'note']
     readonly_fields = ['created_at']
 
 
@@ -64,3 +64,17 @@ class EmailTokenAdmin(admin.ModelAdmin):
     def token_short(self, obj):
         return f"{obj.token[:16]}..." if len(obj.token) > 16 else obj.token
     token_short.short_description = 'Token'
+
+
+@admin.register(FissionCodeVisit)
+class FissionCodeVisitAdmin(admin.ModelAdmin):
+    list_display = ['agent', 'visited_at', 'fission_code']
+    search_fields = ['agent__name']
+    readonly_fields = ['agent', 'visited_at', 'fission_code']
+
+
+@admin.register(InvitationRelationship)
+class InvitationRelationshipAdmin(admin.ModelAdmin):
+    list_display = ['inviter', 'invitee', 'code', 'created_at']
+    search_fields = ['inviter__name', 'invitee__name']
+    readonly_fields = ['created_at']

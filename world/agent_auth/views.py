@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 import json
-from .models import Agent, InvitationCode, UserEmail, EmailToken
+from .models import Agent, InvitationCode, UserEmail, EmailToken, FissionCodeVisit, InvitationRelationship
 from datetime import datetime
 from .auth import verify_claim_token
 from .twitter_verify import verify_and_claim_agent
@@ -119,16 +119,29 @@ def register_agent(request):
         
         # 创建 Agent
         agent, api_key = Agent.create_agent(name=name, description=description)
-        
+
         # 标记邀请码为已使用
         inv_code.mark_used(agent)
-        
+
+        # Auto-generate fission code for the new agent
+        generation = inv_code.generation + 1 if inv_code.generation else 1
+        fission_code = InvitationCode.create_fission_code(agent, generation)
+
+        # Record invitation relationship
+        InvitationRelationship.objects.create(
+            inviter=inv_code.created_by,  # May be None for admin codes
+            invitee=agent,
+            code=inv_code
+        )
+
         return JsonResponse({
             'agent_id': str(agent.id),
             'name': agent.name,
             'api_key': api_key,
             'claim_url': agent.claim_url,
-            'claim_expires_at': agent.claim_expires_at.isoformat()
+            'claim_expires_at': agent.claim_expires_at.isoformat(),
+            'fission_code': fission_code.code,
+            'message': 'Visit the Cliff in game to see your invitation code!'
         }, status=201)
         
     except json.JSONDecodeError:

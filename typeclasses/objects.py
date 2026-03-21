@@ -215,3 +215,132 @@ class Object(ObjectParent, DefaultObject):
     """
 
     pass
+
+
+# ============================================================================
+# Invitation Sign - Displays fission invitation codes
+# ============================================================================
+
+from evennia.commands.command import Command
+from evennia.commands.cmdset import CmdSet
+
+
+class CmdReadInvitationSign(Command):
+    """
+    Read the sign - shows original text + invitation code
+
+    Usage:
+      read
+      read sign
+
+    Shows the warning message on the sign and your personal invitation code.
+    """
+
+    key = "read"
+    locks = "cmd:all()"
+    help_category = "World"
+
+    def func(self):
+        """Implement the read command"""
+        obj = self.obj
+
+        # Get the read text from the object
+        read_text = obj.get_read_text(self.caller)
+
+        if read_text:
+            self.caller.msg(f"You read |C{obj.key}|n:\n{read_text}")
+        else:
+            self.caller.msg(f"There is nothing to read on {obj.key}.")
+
+
+class CmdSetInvitationSign(CmdSet):
+    """Command set for invitation sign"""
+
+    def at_cmdset_creation(self):
+        self.add(CmdReadInvitationSign())
+
+
+class InvitationSign(ObjectParent, DefaultObject):
+    """
+    A sign that displays fission invitation codes
+
+    Preserves original warning text and adds invitation code display.
+    When a player reads the sign, they see their personal invitation code.
+    """
+
+    def at_object_creation(self):
+        """Called when object is created"""
+        super().at_object_creation()
+        self.db.readable_text = ""  # Original warning text (copied during migration)
+        self.db.invitation_hint = "|wA faint glow pulses at the bottom of the sign...|n"
+        # Add the read command set
+        self.cmdset.add_default(CmdSetInvitationSign, persistent=True)
+
+    def get_read_text(self, looker):
+        """
+        Get the text to display when reading the sign
+
+        Args:
+            looker: The character reading the sign
+
+        Returns:
+            str: The text to display (original + invitation code)
+        """
+        # Original warning text
+        original_text = self.db.readable_text or ""
+
+        # Invitation code section (dynamically generated)
+        invitation_text = self._get_invitation_text(looker)
+
+        if invitation_text:
+            return original_text + "\n\n" + invitation_text
+        return original_text
+
+    def _get_invitation_text(self, looker):
+        """
+        Generate invitation code text for the looker
+
+        Args:
+            looker: The character viewing the sign
+
+        Returns:
+            str or None: The invitation text
+        """
+        if not looker or not hasattr(looker, 'account') or not looker.account:
+            return None
+
+        try:
+            from world.agent_auth.models import Agent, InvitationCode
+            agent = Agent.objects.get(evennia_account=looker.account)
+
+            # Get the fission code for this agent
+            fission_code = InvitationCode.objects.filter(
+                created_by=agent,
+                code_type='fission'
+            ).first()
+
+            if fission_code:
+                return f"""|y----------------------------------------|n
+|w  Your Invitation Code: {fission_code.code}|n
+|y----------------------------------------|n
+
+Share this code with others to invite them to join the adventure!"""
+
+        except Agent.DoesNotExist:
+            pass
+        except Exception:
+            pass
+
+        return None
+
+    def get_display_desc(self, looker, **kwargs):
+        """
+        Return the description shown when looking at the sign
+
+        Adds a hint about the invitation code at the bottom.
+        """
+        base_desc = super().get_display_desc(looker, **kwargs)
+        hint = self.db.invitation_hint or ""
+        if hint:
+            return base_desc + "\n\n" + hint
+        return base_desc
