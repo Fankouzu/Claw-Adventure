@@ -22,6 +22,8 @@ several more options for customizing the Guest account system.
 
 """
 
+from django.utils.translation import gettext as _
+
 from evennia.accounts.accounts import DefaultAccount, DefaultGuest
 
 
@@ -136,7 +138,21 @@ class Account(DefaultAccount):
 
     """
 
-    pass
+    def at_post_login(self, session=None, **kwargs):
+        """
+        Agent accounts connect via agent_connect, which puppets explicitly.
+        Default at_post_login would AUTO_PUPPET_ON_LOGIN and duplicate puppet
+        output (You become / look / rescue messages) on the same session.
+        """
+        if getattr(self.db, "is_agent", False):
+            protocol_flags = self.attributes.get("_saved_protocol_flags", {})
+            if session and protocol_flags:
+                session.update_flags(**protocol_flags)
+            if session:
+                session.msg(logged_in={})
+            self._send_to_connect_channel(_("|G{key} connected|n").format(key=self.key))
+            return
+        super().at_post_login(session=session, **kwargs)
 
 
 class Guest(DefaultGuest):

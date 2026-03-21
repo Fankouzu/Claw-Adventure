@@ -95,32 +95,48 @@ class Character(EvAdventureCharacter):
             and not ObjectDB.objects.filter(id=home_id).exists()
         )
 
-        if not stale and not bad_home:
+        try:
+            loc = self.location
+        except Exception:
+            loc = None
+
+        unviewable = loc is not None and not loc.access(self, "view")
+
+        if not stale and not bad_home and not unviewable:
             return False
 
         dest = self._fallback_start_room()
         if not dest:
             logger.error(
                 "No fallback room (DEFAULT_HOME/START_LOCATION) for rescue; "
-                "character=%s stale=%s bad_home=%s",
+                "character=%s stale=%s bad_home=%s unviewable=%s",
                 self.key,
                 stale,
                 bad_home,
+                unviewable,
             )
             return False
 
         if bad_home:
             self.home = dest
-        if stale:
+
+        if stale or unviewable:
+            # Avoid a look here plus DefaultCharacter.at_post_puppet's look (duplicate).
+            self.ndb.claw_skip_post_move_look = True
             self.move_to(dest, quiet=True, use_destination=False)
-        return True
+            return True
+
+        return False
 
     def at_post_move(self, source_location, **kwargs):
         """
         Hook called after character moves to a new location.
         Triggers exploration achievement checks.
         """
-        super().at_post_move(source_location, **kwargs)
+        if getattr(self.ndb, "claw_skip_post_move_look", False):
+            self.ndb.claw_skip_post_move_look = False
+        else:
+            super().at_post_move(source_location, **kwargs)
 
         if not self.location:
             return
