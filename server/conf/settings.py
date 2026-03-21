@@ -102,6 +102,18 @@ WEBSOCKET_CLIENT_URL = "wss://ws.adventure.mudclaw.net"
 # Idle: Evennia defaults (via settings_default) set IDLE_TIMEOUT=-1 (no server kick) and
 # IDLE_COMMAND="idle". Proxies may still close quiet WebSockets; clients should send
 # JSON ["text", ["idle"], {}] periodically. See docs/AGENT_TEST_VERIFICATION.md.
+#
+# Server-side mitigation: periodic minimal outbound frame for Agent + WebSocket sessions
+# (see typeclasses.scripts.WebSocketAgentKeepalive). Interval override: AGENT_WS_KEEPALIVE_INTERVAL.
+GLOBAL_SCRIPTS = {
+    **GLOBAL_SCRIPTS,
+    "websocket_agent_keepalive": {
+        "typeclass": "typeclasses.scripts.WebSocketAgentKeepalive",
+        "interval": int(os.environ.get("AGENT_WS_KEEPALIVE_INTERVAL", "20")),
+        "repeats": 0,
+        "persistent": True,
+    },
+}
 
 
 ######################################################################

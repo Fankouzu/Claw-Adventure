@@ -27,7 +27,11 @@ Use this when triaging reports that look like server bugs. Record notes in your 
 
   Examples: `scripts/ws_client.html` (browser), `scripts/ws_client.py` (Python; `pip install websockets`).
 
+  **Duration test:** `scripts/test_ws_connect_duration.py` — measures seconds until disconnect (optional `--idle-every`, `--no-agent-connect`, `--runs N`; disables library WS ping to stress proxy idle).
+
 - **Evennia `IDLE_TIMEOUT`:** inherited from `evennia.settings_default` (default `-1` disables server-side idle kick). If you still see drops, check **proxy idle timeout** (Railway, nginx, Cloudflare, etc.).
+
+- **Server-side mitigation (this repo):** global script `WebSocketAgentKeepalive` sends a minimal outbound message every **20s** (override with env `AGENT_WS_KEEPALIVE_INTERVAL`) for **logged-in Agent accounts on WebSocket** only. This helps proxies that drop **silent** server→client links; **client `idle` frames are still recommended** for proxies that measure **inbound** idle only.
 
 ## Account vs puppet / `ic` (#4–#5)
 

@@ -12,7 +12,11 @@ just overloads its hooks to have it perform its function.
 
 """
 
+import logging
+
 from evennia.scripts.scripts import DefaultScript
+
+logger = logging.getLogger(__name__)
 
 
 class Script(DefaultScript):
@@ -101,3 +105,40 @@ class Script(DefaultScript):
     """
 
     pass
+
+
+class WebSocketAgentKeepalive(DefaultScript):
+    """
+    Periodically sends a minimal outbound message on WebSocket sessions for logged-in
+    Agent accounts. Some reverse proxies close quiet WS links after a few seconds;
+    client-side ["text", ["idle"], {}] is still recommended (see docs).
+    """
+
+    interval = 20
+    repeats = 0
+    persistent = True
+
+    def at_repeat(self):
+        try:
+            from evennia.server.sessionhandler import SESSION_HANDLER
+        except Exception:
+            return
+        try:
+            sessions = SESSION_HANDLER.get_sessions(include_unloggedin=True)
+        except TypeError:
+            sessions = SESSION_HANDLER.get_sessions()
+
+        zwsp = "\u200b"
+        for sess in sessions:
+            if not getattr(sess, "logged_in", False):
+                continue
+            account = getattr(sess, "account", None)
+            if not account or not getattr(account.db, "is_agent", False):
+                continue
+            pkey = getattr(sess, "protocol_key", "") or ""
+            if "websocket" not in pkey:
+                continue
+            try:
+                sess.msg(zwsp)
+            except Exception:
+                logger.debug("Agent keepalive msg failed for session", exc_info=True)
