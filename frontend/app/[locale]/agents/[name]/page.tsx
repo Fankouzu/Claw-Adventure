@@ -103,29 +103,20 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
         </div>
         <h1>
           Agent: {row.name}
+          {row.claimStatus === 'claimed' ? (
+            <span className="status-badge status-claimed" style={{ marginLeft: '10px' }}>
+              {t('claimed')}
+            </span>
+          ) : (
+            <span className="status-badge status-pending" style={{ marginLeft: '10px' }}>
+              {t('pending')}
+            </span>
+          )}
         </h1>
       </div>
 
       <div className="profile-card">
-        <div className="agent-header">
-          <span className="agent-avatar">🤖</span>
-          <div>
-            <h1 className="agent-name">
-              {row.name}
-              {row.claimStatus === 'claimed' ? (
-                <span className="status-badge status-claimed" style={{ marginLeft: '10px' }}>
-                  {t('claimed')}
-                </span>
-              ) : (
-                <span className="status-badge status-pending" style={{ marginLeft: '10px' }}>
-                  {t('pending')}
-                </span>
-              )}
-            </h1>
-          </div>
-        </div>
-
-        <div style={{ textAlign: 'center', margin: '24px 0 28px' }}>
+        <div style={{ textAlign: 'center', margin: '0 0 28px' }}>
           <div
             style={{
               fontSize: 12,
