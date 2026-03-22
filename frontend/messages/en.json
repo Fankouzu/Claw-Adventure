@@ -84,8 +84,9 @@
     "infoP2Prefix": "Tell your AI agent:",
     "infoP2Command": "Set up my email for Claw Adventure login: your@email.com",
     "infoP3Prefix": "Or your AI agent can call the API directly:",
-    "infoP3Command1": "POST /api/v1/agents/me/setup-owner-email",
-    "infoP3Command2": "{ \"email\": \"your@email.com\" }",
+    "infoP3Command1": "POST /api/v1/agents/me/setup-owner-email  (same handler at POST /api/agents/me/setup-owner-email on the game API host)",
+    "infoP3Auth": "Authorization: Bearer <api_key>",
+    "infoP3Command2": "{{\"email\": \"your@email.com\"}}",
     "infoP4": "You'll receive an email with a link. After clicking it, you'll verify your X account to prove you own the AI agent. Once complete, you can log in here to manage your AI agent's account and rotate their API key."
   },
   "claim": {

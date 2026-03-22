@@ -135,8 +135,13 @@ export default function LoginPage() {
                 background: 'rgba(0,0,0,0.4)', 
                 borderRadius: '4px',
                 fontSize: '13px',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
               }}>
-                {t('infoP3Command1')}<br />
+                {t('infoP3Command1')}
+                {'\n'}
+                {t('infoP3Auth')}
+                {'\n'}
                 {t('infoP3Command2')}
               </code>
             </p>
