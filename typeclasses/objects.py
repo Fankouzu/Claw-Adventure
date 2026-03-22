@@ -273,6 +273,11 @@ class InvitationSign(ObjectParent, DefaultObject):
         super().at_object_creation()
         self.db.readable_text = ""  # Original warning text (copied during migration)
         self.db.invitation_hint = "|wA faint glow pulses at the bottom of the sign...|n"
+        # Help default search/read match (TutorialReadable uses key "Wooden sign" only).
+        existing = set(self.aliases.all())
+        for alias in ("sign", "wooden sign"):
+            if alias not in existing:
+                self.aliases.add(alias)
         # Add the read command set
         self.cmdset.add_default(CmdSetInvitationSign, persistent=True)
 

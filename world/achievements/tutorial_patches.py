@@ -16,6 +16,61 @@ from world.achievements.integration import send_achievement_unlock_messages
 _INSTALLED = False
 
 
+def _visible_candidates_in_room(caller):
+    """Location + inventory contents that pass view (for fuzzy name matching)."""
+    seen = set()
+    out = []
+    loc = caller.location
+    if loc:
+        for o in loc.contents:
+            oid = id(o)
+            if oid in seen:
+                continue
+            seen.add(oid)
+            if o.access(caller, "view"):
+                out.append(o)
+    for o in caller.contents:
+        oid = id(o)
+        if oid in seen:
+            continue
+        seen.add(oid)
+        if o.access(caller, "view"):
+            out.append(o)
+    return out
+
+
+def _name_tokens_for_obj(obj):
+    names = []
+    if obj.key:
+        names.append(obj.key.lower())
+    for a in obj.aliases.all():
+        if a:
+            names.append(a.lower())
+    return names
+
+
+def _unique_token_subset_name_match(caller, arg: str):
+    """
+    Match inputs like 'sign' to key 'Wooden sign' when Evennia search returns 0/multiple.
+
+    Uses word-token subset: {'sign'} <= {'wooden', 'sign'}. Returns one object or None.
+    """
+    arg_tokens = set(arg.strip().lower().split())
+    if not arg_tokens:
+        return None
+    matches = []
+    for o in _visible_candidates_in_room(caller):
+        for n in _name_tokens_for_obj(o):
+            if not n:
+                continue
+            if arg_tokens <= set(n.split()):
+                matches.append(o)
+                break
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
 def _notify_climb(caller):
     from world.achievements.engine import AchievementEngine
     from world.achievements.integration import agent_for_character
@@ -116,6 +171,32 @@ def install_tutorial_achievement_hooks() -> None:
 
     tw_objects.CmdPressButton.func = _patched_press_func
 
+    # --- Tutorial Readable: allow 'read sign' when key is 'Wooden sign' (no alias) ---
+    def _patched_cmd_read_func(self):
+        caller = self.caller
+        if self.args:
+            arg = self.args.strip()
+            res = caller.search(arg, quiet=True)
+            if len(res) == 1:
+                obj = res[0]
+            else:
+                obj = _unique_token_subset_name_match(caller, arg)
+                if not obj:
+                    caller.search(arg)
+                    return
+        else:
+            obj = self.obj
+        if not obj:
+            return
+        readtext = obj.db.readable_text
+        if readtext:
+            string = "You read |C%s|n:\n %s" % (obj.key, readtext)
+        else:
+            string = "There is nothing to read on %s." % obj.key
+        caller.msg(string)
+
+    tw_objects.CmdRead.func = _patched_cmd_read_func
+
     # --- Bridge look: include {"type": "look"} for WebSocket JSON clients ---
     def _patched_cmd_look_bridge_func(self):
         caller = self.caller
@@ -162,14 +243,19 @@ def install_tutorial_achievement_hooks() -> None:
                 use_nicks=True,
                 quiet=True,
             )
-            if len(looking_at_obj) != 1:
+            if len(looking_at_obj) == 1:
+                looking_at_obj = looking_at_obj[0]
+            else:
                 detail = self.obj.return_detail(args)
                 if detail:
                     caller.msg(text=(detail, {"type": "look"}), options=None)
                     return
-                _search_at_result(looking_at_obj, caller, args)
-                return
-            looking_at_obj = looking_at_obj[0]
+                fuzzy = _unique_token_subset_name_match(caller, args)
+                if fuzzy is not None:
+                    looking_at_obj = fuzzy
+                else:
+                    _search_at_result(looking_at_obj, caller, args)
+                    return
         else:
             looking_at_obj = caller.location
             if not looking_at_obj:
