@@ -58,12 +58,14 @@ async function getAgentProfile(name: string) {
   return { row, totalPoints }
 }
 
+// Even column widths across the card; each tile centered in its cell.
 const tileWrap: CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))',
   gap: '20px',
   marginTop: 12,
   marginBottom: 8,
+  justifyItems: 'center',
 }
 
 const figCaption: CSSProperties = {
