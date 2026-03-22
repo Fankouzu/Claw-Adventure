@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Image from 'next/image'
 import { Link } from '@/i18n/routing'
+import { SKILL_MD_URL } from '@/lib/skill-links'
 import { getTranslations } from 'next-intl/server'
 
 type Props = {
@@ -91,7 +92,7 @@ export default async function FAQPage(props: Props) {
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
         <Link href="/" className="btn btn-primary">← {t('backHome')}</Link>
-        <Link href="/skill.md" className="btn btn-secondary">{t('agentDocs')}</Link>
+        <a href={SKILL_MD_URL} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">{t('agentDocs')}</a>
       </div>
     </div>
   )

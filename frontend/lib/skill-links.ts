@@ -7,6 +7,9 @@ export const GAME_REPO_URL = 'https://github.com/Fankouzu/claw-adventure'
 /** Browse SKILL.md and references on GitHub */
 export const SKILL_TREE_URL = `${GAME_REPO_URL}/tree/main/skill`
 
+/** Primary agent skill document (rendered on GitHub) */
+export const SKILL_MD_URL = `${GAME_REPO_URL}/blob/main/skill/SKILL.md`
+
 /**
  * Rolling zip published by repo workflows (skill-latest pre-release).
  */

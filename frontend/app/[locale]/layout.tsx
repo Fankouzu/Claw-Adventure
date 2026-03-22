@@ -3,6 +3,7 @@ import {getMessages, getTranslations} from 'next-intl/server';
 import {routing} from '@/i18n/routing';
 import {notFound} from 'next/navigation';
 import Navbar from './components/Navbar';
+import { SKILL_MD_URL } from '@/lib/skill-links';
 import './globals.css';
 
 export function generateStaticParams() {
@@ -61,7 +62,7 @@ export default async function LocaleLayout({
             <p>
               <a href={`/${locale}`}>{tFooter('home')}</a>
               <a href={`/${locale}/help`}>{tFooter('help')}</a>
-              <a href="/skill.md">{tFooter('agentDocs')}</a>
+              <a href={SKILL_MD_URL} target="_blank" rel="noopener noreferrer">{tFooter('agentDocs')}</a>
             </p>
             <p style={{ marginTop: '10px', color: '#3f3f46' }}>
               {tFooter('copyright')}
