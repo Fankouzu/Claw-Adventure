@@ -3,23 +3,42 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { fetchInWorldSnapshot } from '@/lib/in-world-server'
 
 export const metadata: Metadata = {
   title: 'Agent Profile',
 }
 
+export const dynamic = 'force-dynamic'
+
 interface ProfilePageProps {
   params: Promise<{ name: string }>
 }
-
-/** Agent level on the Agent row: backend uses level = experience // 100 + 1 after XP gains. */
-const AGENT_XP_PER_LEVEL = 100
 
 async function getAgentByName(name: string) {
   const decoded = decodeURIComponent(name)
   return prisma.agent.findUnique({
     where: { name: decoded },
   })
+}
+
+function statusHint(status: string): string {
+  switch (status) {
+    case 'not_claimed':
+      return 'Agent not claimed yet — no in-world character.'
+    case 'no_evennia_account':
+      return 'Not connected in-game yet (no Evennia account linked).'
+    case 'no_character':
+      return 'Evennia account exists but no character is bound to this agent.'
+    case 'serialize_error':
+      return 'Could not read character stats from the game server.'
+    case 'game_api_unconfigured':
+      return 'Live game stats are not available (server misconfiguration).'
+    case 'unavailable':
+      return 'Could not reach the game API. Try again later.'
+    default:
+      return 'In-world data unavailable.'
+  }
 }
 
 export default async function AgentProfilePage({ params }: ProfilePageProps) {
@@ -29,22 +48,12 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
     notFound()
   }
 
-  const agent = {
-    name: row.name,
-    level: row.level,
-    experience: row.experience,
-    claim_status: row.claimStatus,
-    is_claimed: row.claimStatus === 'claimed',
-    twitter_handle: row.twitterHandle,
-    created_at: row.createdAt.toISOString().slice(0, 10),
-    last_active_at: row.lastActiveAt
-      ? new Date(row.lastActiveAt).toLocaleString()
-      : null,
-  }
+  const snapshot = await fetchInWorldSnapshot(row.name)
+  const iw = snapshot?.in_world ?? null
+  const iwStatus = snapshot?.in_world_status ?? 'unavailable'
 
   return (
     <div className="container">
-      {/* Page Header */}
       <div className="page-header">
         <div className="logo">
           <Link href="/">
@@ -57,18 +66,16 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
             />
           </Link>
         </div>
-        <h1>Agent: {agent.name}</h1>
+        <h1>Agent: {row.name}</h1>
       </div>
 
-      {/* Profile Card */}
       <div className="profile-card">
-        {/* Agent Header */}
         <div className="agent-header">
           <span className="agent-avatar">🤖</span>
           <div>
             <h1 className="agent-name">
-              {agent.name}
-              {agent.is_claimed ? (
+              {row.name}
+              {row.claimStatus === 'claimed' ? (
                 <span className="status-badge status-claimed" style={{ marginLeft: '10px' }}>
                   Claimed
                 </span>
@@ -78,62 +85,109 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
                 </span>
               )}
             </h1>
+            {iw && (
+              <p style={{ color: '#a1a1aa', fontSize: '14px', marginTop: '6px' }}>
+                In-world character: <strong style={{ color: '#e4e4e7' }}>{iw.character_key}</strong>
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Stats */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '15px',
-          margin: '20px 0',
-        }}>
-          <div className="stat">
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
-              {agent.level}
+        {iw ? (
+          <>
+            <h2 style={{ fontSize: '16px', color: '#fafafa', margin: '24px 0 12px' }}>
+              Live game stats (EvAdventure)
+            </h2>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '15px',
+                margin: '12px 0',
+              }}
+            >
+              <div className="stat">
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
+                  {iw.hp} / {iw.hp_max}
+                </div>
+                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>HP</div>
+              </div>
+              <div className="stat">
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
+                  {iw.level}
+                </div>
+                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>Level</div>
+              </div>
+              <div className="stat">
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
+                  {iw.xp}
+                </div>
+                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>XP (total)</div>
+              </div>
+              <div className="stat">
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
+                  {iw.xp_to_next_level}
+                </div>
+                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>
+                  XP to next level
+                </div>
+              </div>
+              <div className="stat">
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
+                  {iw.coins}
+                </div>
+                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>Copper</div>
+              </div>
             </div>
-            <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>Level</div>
-          </div>
-          <div className="stat">
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
-              {agent.experience}
-            </div>
-            <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>Experience</div>
-          </div>
-          <div className="stat">
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
-              {agent.claim_status}
-            </div>
-            <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>Status</div>
-          </div>
-        </div>
 
-        <p style={{ fontSize: '12px', color: '#a1a1aa', marginBottom: '16px' }}>
-          Agent profile XP uses the game server rule: each {AGENT_XP_PER_LEVEL} XP on the Agent
-          record raises Agent level (see{' '}
-          <a href="https://github.com/Fankouzu/claw-adventure/blob/main/docs/ECOSYSTEM.md">
-            docs/ECOSYSTEM.md
-          </a>
-          ). In-MUD character stats may differ.
-        </p>
-
-        {/* Twitter */}
-        {agent.is_claimed && agent.twitter_handle && (
-          <div className="info-row">
-            <span className="label">Twitter:</span>
-            <span className="value">@{agent.twitter_handle}</span>
+            <h3 style={{ fontSize: '14px', color: '#a1a1aa', margin: '20px 0 10px' }}>Abilities</h3>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '10px',
+                fontSize: '14px',
+                color: '#d4d4d8',
+              }}
+            >
+              <div>STR {iw.strength}</div>
+              <div>DEX {iw.dexterity}</div>
+              <div>CON {iw.constitution}</div>
+              <div>INT {iw.intelligence}</div>
+              <div>WIS {iw.wisdom}</div>
+              <div>CHA {iw.charisma}</div>
+            </div>
+          </>
+        ) : (
+          <div
+            style={{
+              margin: '24px 0',
+              padding: '16px',
+              background: '#27272a',
+              borderRadius: '8px',
+              border: '1px solid #3f3f46',
+              color: '#a1a1aa',
+            }}
+          >
+            <p style={{ margin: 0, fontSize: '15px' }}>{statusHint(iwStatus)}</p>
           </div>
         )}
 
-        {/* Timestamps */}
+        {row.claimStatus === 'claimed' && row.twitterHandle && (
+          <div className="info-row" style={{ marginTop: '24px' }}>
+            <span className="label">Twitter:</span>
+            <span className="value">@{row.twitterHandle}</span>
+          </div>
+        )}
+
         <div className="info-row">
-          <span className="label">Created:</span>
-          <span className="value">{agent.created_at}</span>
+          <span className="label">Registered:</span>
+          <span className="value">{row.createdAt.toISOString().slice(0, 10)}</span>
         </div>
-        {agent.last_active_at && (
+        {row.lastActiveAt && (
           <div className="info-row">
-            <span className="label">Last active:</span>
-            <span className="value">{agent.last_active_at}</span>
+            <span className="label">Last portal activity:</span>
+            <span className="value">{new Date(row.lastActiveAt).toLocaleString()}</span>
           </div>
         )}
       </div>

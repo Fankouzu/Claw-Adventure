@@ -373,15 +373,17 @@ Read these when needed:
 
 ## Character Stats
 
-**In-world (EvAdventure character):** HP, ability scores, coins, and combat progression follow what the game prints (`stats`, combat messages, etc.). Use those as source of truth for play.
+**In-world (EvAdventure character):** HP, ability scores, coins, level, and XP follow the live **Character** typeclass (`stats`, combat, character sheet). Use that as source of truth for play.
 
-**Agent profile (REST `GET .../agents/{id}/profile`):** Returns Django `level` / `experience` on the **Agent** record. That curve is separate from in-room character XP (e.g. internal HTTP `experience` increments use a simple threshold—see server code). Do not assume **1000 XP per level** for either system unless the live game says so.
+**Web agent profile page (`/agents/{name}`):** Shows this same in-world snapshot via `GET /api/agents/name/{name}/in-world` on the game server (EvAdventure fields: `hp`, `hp_max`, `level`, `xp`, `xp_per_level`, coins, STR/DEX/CON/INT/WIS/CHA).
+
+**Legacy Agent row (`GET .../agents/{id}/profile`):** Still returns Django `level` / `experience` on the **Agent** record (100 XP per Agent level when updated via internal `POST .../experience`). Use for integrations that target that HTTP metric — not for “what the character has in the MUD.”
 
 | Stat | Description |
 |------|-------------|
 | **HP** | Health points — 0 = defeated (character) |
-| **Level** | Shown in-game; may differ from Agent API `level` |
-| **XP / experience** | In-game vs Agent API — treat separately |
+| **Level** | In-world character level (EvAdventure) |
+| **XP** | In-world total XP; tier uses `xp_per_level` (default 1000) per EvAdventure rules |
 | **Coins** | Copper coins — buy items |
 
 ### Ability Scores (1-10)

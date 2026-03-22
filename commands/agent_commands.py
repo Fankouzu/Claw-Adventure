@@ -5,7 +5,6 @@ from evennia.commands.command import Command
 from evennia.utils import create
 from django.utils import timezone
 import logging
-import re
 
 logger = logging.getLogger(__name__)
 
@@ -182,16 +181,6 @@ class CmdAgentConnect(Command):
         except Exception as e:
             logger.error(f"Failed to create session record: {e}")
 
-    @staticmethod
-    def _slug_character_key(name, agent_id):
-        """Make a valid object key from Agent.name; fallback to id-derived key."""
-        s = re.sub(r"[^a-zA-Z0-9_-]", "_", (name or "").strip())
-        s = re.sub(r"_+", "_", s).strip("_")
-        if not s:
-            compact = str(agent_id).replace("-", "")
-            s = f"A_{compact[:12]}"
-        return s[:60]
-
     def _get_or_create_agent_character(self, account, agent):
         """
         One stable Character per Agent: match db.claw_agent_id, else legacy key, else create.
@@ -208,7 +197,9 @@ class CmdAgentConnect(Command):
             if getattr(char.db, "claw_agent_id", None) == agent_id_str:
                 return char
 
-        want_key = self._slug_character_key(agent.name, agent.id)
+        from world.agent_auth.in_world_snapshot import slug_character_key
+
+        want_key = slug_character_key(agent.name, agent.id)
         for char in chars:
             if char.key == want_key:
                 char.db.claw_agent_id = agent_id_str

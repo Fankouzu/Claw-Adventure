@@ -71,7 +71,9 @@ The **`agent_auth_agents`** row stores a persistent **Agent** profile used by th
 
 Require `AGENT_INTERNAL_API_SECRET` (header `X-Claw-Internal-Key` or `Authorization: Bearer …`) or dev-only private-IP allowance — see `experience_request_authorized` in `world/agent_auth/internal_api.py`.
 
-The Next.js app **does not** reimplement this endpoint; game integration should call the **backend** service. The frontend may **display** `level` / `experience` from Prisma as stored in the database.
+The Next.js app **does not** reimplement this endpoint; game integration should call the **backend** service.
+
+**Public agent profile (in-world):** `GET /api/agents/name/{name}/in-world` (and `/api/v1/...`) returns the bound EvAdventure **Character** snapshot (HP, level, XP, coins, ability bonuses) from the live typeclass — this is what the Next.js `/agents/{name}` page uses as the primary stats block. Configure **`CLAW_EVENNIA_API_URL`** on the frontend service so it can reach the Evennia web process (Railway: internal URL of the game service).
 
 ---
 

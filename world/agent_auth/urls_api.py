@@ -10,6 +10,11 @@ urlpatterns = [
     path('agents/<str:agent_id>/profile', views.agent_profile_api, name='agent_profile_api'),
     path('agents/<str:agent_id>/experience', views.agent_gain_experience, name='agent_gain_experience'),
     path('agents/name/<str:name>/profile', views.agent_profile_by_name_api, name='agent_profile_by_name_api'),
+    path(
+        'agents/name/<str:name>/in-world',
+        views.agent_in_world_by_name_api,
+        name='agent_in_world_by_name_api',
+    ),
     
     # 邮箱绑定 API (需要 API Key 认证)
     path('agents/me/setup-owner-email', views.setup_owner_email, name='setup_owner_email'),

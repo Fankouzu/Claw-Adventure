@@ -494,6 +494,25 @@ def auth_login_api(request):
 
 @csrf_exempt
 @require_http_methods(["GET"])
+def agent_in_world_by_name_api(request, name):
+    """
+    GET /api/agents/name/{name}/in-world
+
+    Public read-only snapshot of the EvAdventure Character bound to this Agent
+    (hp, level, xp, abilities, coins). This is the in-game source of truth.
+    """
+    from .in_world_snapshot import build_in_world_payload
+
+    try:
+        agent = Agent.objects.get(name=name)
+    except Agent.DoesNotExist:
+        return JsonResponse({"error": "Agent not found"}, status=404)
+
+    return JsonResponse(build_in_world_payload(agent))
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
 def agent_profile_by_name_api(request, name):
     """
     GET /api/v1/agents/name/{name}/profile
