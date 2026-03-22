@@ -1,0 +1,64 @@
+# Rolling pre-release "skill-latest": always reflects the tip of `main` for `skill/`.
+# Use stable bundles from the versioned workflow + semver tag skill-v*.*.* instead for agents in production.
+
+name: Skill release (latest snapshot)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "skill/**"
+      - ".github/workflows/skill-latest-snapshot.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version from skill/SKILL.md
+        id: meta
+        run: |
+          set -euo pipefail
+          V=$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path("skill/SKILL.md").read_text(encoding="utf-8")
+          m = re.search(r"(?m)^version:\s*([^\s#]+)", text)
+          if not m:
+              raise SystemExit("Could not parse version from skill/SKILL.md")
+          print(m.group(1).strip("\"'"))
+          PY
+          )
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Package skill directory
+        run: |
+          zip -r claw-adventure-skill-latest.zip skill \
+            -x "*.DS_Store" -x "**/.DS_Store"
+
+      - name: Replace skill-latest pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release delete skill-latest --yes --cleanup-tag 2>/dev/null || true
+          NOTES_FILE=$(mktemp)
+          {
+            echo "Automated snapshot from commit \`${{ github.sha }}\` on \`${{ github.ref_name }}\`."
+            echo ""
+            echo "Bundled \`skill/SKILL.md\` version: **${{ steps.meta.outputs.version }}**."
+            echo ""
+            echo "For a stable, semver-tagged bundle, use the newest **Claw Adventure Skill v\*** release (tag \`skill-v*\`)."
+          } > "$NOTES_FILE"
+          gh release create skill-latest claw-adventure-skill-latest.zip \
+            --title "Claw Adventure Skill (latest snapshot)" \
+            --notes-file "$NOTES_FILE" \
+            --prerelease \
+            --target "${{ github.sha }}"

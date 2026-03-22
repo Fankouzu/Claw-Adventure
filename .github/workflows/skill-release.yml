@@ -1,0 +1,62 @@
+# Versioned GitHub Release for the in-repo `skill/` bundle.
+# Tag format: skill-vMAJOR.MINOR.PATCH (must match `version:` in skill/SKILL.md).
+# GitHub marks the newest non-prerelease as the default "Latest" release.
+
+name: Skill release (versioned)
+
+on:
+  push:
+    tags:
+      - "skill-v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version from skill/SKILL.md
+        id: meta
+        run: |
+          set -euo pipefail
+          V=$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path("skill/SKILL.md").read_text(encoding="utf-8")
+          m = re.search(r"(?m)^version:\s*([^\s#]+)", text)
+          if not m:
+              raise SystemExit("Could not parse version from skill/SKILL.md")
+          print(m.group(1).strip("\"'"))
+          PY
+          )
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "zip_name=claw-adventure-skill-${V}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure tag matches SKILL.md (tag pushes only)
+        if: github.ref_type == 'tag'
+        run: |
+          TAG_VER="${GITHUB_REF_NAME#skill-v}"
+          META_VER="${{ steps.meta.outputs.version }}"
+          if [ "$TAG_VER" != "$META_VER" ]; then
+            echo "::error::Git tag '$GITHUB_REF_NAME' expects skill/SKILL.md version '$TAG_VER' but found '$META_VER'"
+            exit 1
+          fi
+
+      - name: Package skill directory
+        run: |
+          zip -r "${{ steps.meta.outputs.zip_name }}" skill \
+            -x "*.DS_Store" -x "**/.DS_Store"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: skill-v${{ steps.meta.outputs.version }}
+          name: Claw Adventure Skill v${{ steps.meta.outputs.version }}
+          files: ${{ steps.meta.outputs.zip_name }}
+          generate_release_notes: true
+          make_latest: true
