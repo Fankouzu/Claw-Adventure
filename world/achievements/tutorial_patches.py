@@ -149,6 +149,99 @@ def install_tutorial_achievement_hooks() -> None:
 
     tw_rooms.CmdLookBridge.func = _patched_cmd_look_bridge_func
 
+    # --- Tutorial look / dark-look: JSON clients expect {"type": "look"} (EvAdventure #3278 parity) ---
+    _search_at_result = tw_rooms._SEARCH_AT_RESULT
+
+    def _patched_cmd_tutorial_look_func(self):
+        caller = self.caller
+        args = self.args
+        if args:
+            looking_at_obj = caller.search(
+                args,
+                candidates=caller.location.contents + caller.contents,
+                use_nicks=True,
+                quiet=True,
+            )
+            if len(looking_at_obj) != 1:
+                detail = self.obj.return_detail(args)
+                if detail:
+                    caller.msg(text=(detail, {"type": "look"}), options=None)
+                    return
+                _search_at_result(looking_at_obj, caller, args)
+                return
+            looking_at_obj = looking_at_obj[0]
+        else:
+            looking_at_obj = caller.location
+            if not looking_at_obj:
+                caller.msg("You have no location to look at!")
+                return
+
+        if not hasattr(looking_at_obj, "return_appearance"):
+            looking_at_obj = looking_at_obj.character
+        if not looking_at_obj.access(caller, "view"):
+            caller.msg("Could not find '%s'." % args)
+            return
+        caller.msg(
+            text=(looking_at_obj.return_appearance(caller), {"type": "look"}),
+            options=None,
+        )
+        looking_at_obj.at_desc(looker=caller)
+
+    tw_rooms.CmdTutorialLook.func = _patched_cmd_tutorial_look_func
+
+    from evennia import create_object, utils as evennia_utils
+    from evennia.contrib.tutorials.tutorial_world.objects import LightSource
+
+    def _patched_cmd_look_dark_func(self):
+        caller = self.caller
+        nr_searches = caller.ndb.dark_searches
+        if nr_searches is None:
+            nr_searches = 0
+            caller.ndb.dark_searches = nr_searches
+
+        if nr_searches < 4 and random.random() < 0.90:
+            caller.msg(
+                text=(random.choice(tw_rooms.DARK_MESSAGES), {"type": "look"}),
+                options=None,
+            )
+            caller.ndb.dark_searches += 1
+        else:
+            if any(
+                obj
+                for obj in caller.contents
+                if evennia_utils.inherits_from(obj, LightSource)
+            ):
+                caller.msg(
+                    text=(tw_rooms.ALREADY_LIGHTSOURCE, {"type": "look"}),
+                    options=None,
+                )
+            else:
+                create_object(LightSource, key="splinter", location=caller)
+                caller.msg(
+                    text=(tw_rooms.FOUND_LIGHTSOURCE, {"type": "look"}),
+                    options=None,
+                )
+
+    tw_rooms.CmdLookDark.func = _patched_cmd_look_dark_func
+
+    # --- EvAdventure twitch CmdLook: room line has type from default; append combat table typed ---
+    from evennia import default_cmds
+    from evennia.contrib.tutorials.evadventure import combat_twitch as ev_combat_twitch
+    from evennia.utils.utils import display_len, pad
+
+    def _patched_ev_twitch_cmd_look_func(self):
+        default_cmds.CmdLook.func(self)
+        if not self.args:
+            combathandler = self.get_or_create_combathandler()
+            txt = str(combathandler.get_combat_summary(self.caller))
+            maxwidth = max(display_len(line) for line in txt.strip().split("\n"))
+            body = (
+                f"|r{pad(' Combat Status ', width=maxwidth, fillchar='-')}|n\n{txt}"
+            )
+            self.msg(text=(body, {"type": "combat_status"}), options=None)
+
+    ev_combat_twitch.CmdLook.func = _patched_ev_twitch_cmd_look_func
+
     # --- Tutorial Mob (ghost): combat_log + combat achievements ---
     _orig_mob_set_alive = Mob.set_alive
 
@@ -176,5 +269,6 @@ def install_tutorial_achievement_hooks() -> None:
 
     _INSTALLED = True
     logger.log_info(
-        "world/achievements: tutorial_world achievement hooks installed."
+        "world/achievements: tutorial_world hooks installed "
+        "(achievements + look type=look / combat_status patches)."
     )

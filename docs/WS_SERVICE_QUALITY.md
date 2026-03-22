@@ -20,9 +20,14 @@ This document maps common **QA findings** on Claw Adventure (Evennia 5.x + custo
 
 ## 3. Missing `{"type": "look"}` in the WebSocket JSON third field
 
-**Cause:** Default Evennia `CmdLook` uses `msg(text=(desc, {"type": "look"}), …)`. Tutorial **bridge** look used plain `caller.msg(message)`, so the client only saw `["text", ["…html…"], {}]`.
+**Cause:** Default Evennia `CmdLook` and `DefaultCharacter.at_post_move` send `{"type": "look"}`. Tutorial world overrides often used plain `caller.msg(string)`:
 
-**Mitigation in repo:** `world/achievements/tutorial_patches.py` replaces `CmdLookBridge.func` with the same logic but `caller.msg(text=(message, {"type": "look"}), options=None)`. Other tutorial rooms may still omit `type` if they use custom messages.
+- **`CmdLookBridge`** — bridge-only look.
+- **`CmdTutorialLook`** — default `look` in most tutorial rooms (Cliff, Inn exterior, etc.); this is why **manual `look`** differed from **move-triggered** look (the latter uses `at_post_move`, not the tutorial command).
+- **`CmdLookDark`** — darkness search / feel messages.
+- **EvAdventure twitch `CmdLook`** (in combat) appends a combat table via plain `msg()` → use `{"type": "combat_status"}` for that block.
+
+**Mitigation in repo:** `world/achievements/tutorial_patches.py` patches all of the above so room/detail/dark lines use `text=(…, {"type": "look"})`, and the combat appendix uses `{"type": "combat_status"}`.
 
 ## 4. `who` shows the same account three times
 
