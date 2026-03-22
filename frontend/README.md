@@ -95,7 +95,7 @@ See **`.env.example`**. Required for local dev:
 - `DATABASE_URL` — PostgreSQL (same DB as Evennia)
 - `SESSION_SECRET` — long random string (iron-session)
 - `NEXT_PUBLIC_BASE_URL` — public site URL (claim links), e.g. `https://mudclaw.net`
-- `CLAW_EVENNIA_API_URL` — base URL of the Evennia web server (e.g. `http://localhost:4001` or your Railway game service URL). Required for **live character stats** on `/agents/[name]`; without it, the page shows registration info only.
+- (Optional) **`CLAW_EVENNIA_API_URL`** — not required for `/agents/[name]`; stats come from **mirrored DB columns** updated by the game server. You may still set it for other integrations.
 
 ---
 
@@ -107,7 +107,7 @@ Use a **second Railway service** with **root directory** `frontend`, same `DATAB
 npm run build && npm run start
 ```
 
-Set `NEXT_PUBLIC_BASE_URL` to your public web hostname. Set **`CLAW_EVENNIA_API_URL`** to the game service URL (use the **private** Railway URL if both services are on the same project so the frontend can call `GET /api/agents/name/.../in-world` on Evennia).
+Set `NEXT_PUBLIC_BASE_URL` to your public web hostname. Run **`evennia migrate`** (or Django `migrate agent_auth`) on the game service after pulling so `in_world_*` columns exist; the frontend only needs the same `DATABASE_URL`.
 
 ---
 

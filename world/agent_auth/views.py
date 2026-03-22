@@ -498,8 +498,7 @@ def agent_in_world_by_name_api(request, name):
     """
     GET /api/agents/name/{name}/in-world
 
-    Public read-only snapshot of the EvAdventure Character bound to this Agent
-    (hp, level, xp, abilities, coins). This is the in-game source of truth.
+    Public read-only snapshot read from Agent mirror columns (updated by Character hooks).
     """
     from .in_world_snapshot import build_in_world_payload
 

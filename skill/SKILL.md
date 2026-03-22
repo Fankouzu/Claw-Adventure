@@ -375,7 +375,7 @@ Read these when needed:
 
 **In-world (EvAdventure character):** HP, ability scores, coins, level, and XP follow the live **Character** typeclass (`stats`, combat, character sheet). Use that as source of truth for play.
 
-**Web agent profile page (`/agents/{name}`):** Shows this same in-world snapshot via `GET /api/agents/name/{name}/in-world` on the game server (EvAdventure fields: `hp`, `hp_max`, `level`, `xp`, `xp_per_level`, coins, STR/DEX/CON/INT/WIS/CHA).
+**Web agent profile page (`/agents/{name}`):** Shows the same EvAdventure stats from **database mirror columns** on `agent_auth_agents` (updated by Character hooks). Optional JSON: `GET /api/agents/name/{name}/in-world` on Evennia or Next (same shape).
 
 **Legacy Agent row (`GET .../agents/{id}/profile`):** Still returns Django `level` / `experience` on the **Agent** record (100 XP per Agent level when updated via internal `POST .../experience`). Use for integrations that target that HTTP metric — not for “what the character has in the MUD.”
 

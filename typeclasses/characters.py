@@ -15,6 +15,7 @@ from evennia.contrib.tutorials.evadventure.combat_twitch import (
 )
 
 from world.achievements.integration import send_achievement_unlock_messages
+from world.agent_auth.in_world_sync import sync_in_world_snapshot_from_character
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +26,15 @@ class Character(EvAdventureCharacter):
     Players stay at Limbo, last location, or DEFAULT_HOME as configured.
     """
 
+    def _sync_in_world_to_agent(self):
+        """Mirror EvAdventure stats to agent_auth_agents for Prisma / web (best-effort)."""
+        sync_in_world_snapshot_from_character(self)
+
     def at_object_creation(self):
         super().at_object_creation()
         # Keep twitch combat cmdset for EvAdventure-style fights.
         self.cmdset.add(TwitchCombatCmdSet, persistent=True)
+        self._sync_in_world_to_agent()
 
     # Forced air-drop on puppet was removed; login uses normal home/location.
 
@@ -52,6 +58,7 @@ class Character(EvAdventureCharacter):
                 "starting location.|n"
             )
             del self.ndb.claw_location_rescued
+        self._sync_in_world_to_agent()
 
     def _fallback_start_room(self):
         """Resolve Limbo / DEFAULT_HOME / START_LOCATION for rescue moves."""
@@ -139,6 +146,7 @@ class Character(EvAdventureCharacter):
             super().at_post_move(source_location, **kwargs)
 
         if not self.location:
+            self._sync_in_world_to_agent()
             return
 
         # Get associated Agent
@@ -180,6 +188,8 @@ class Character(EvAdventureCharacter):
         if unlocked:
             send_achievement_unlock_messages(self, unlocked)
 
+        self._sync_in_world_to_agent()
+
     def at_do_loot(self, defeated_enemy):
         """
         EvAdventure: grant combat achievements when looting a defeated mob.
@@ -192,6 +202,29 @@ class Character(EvAdventureCharacter):
         super().at_do_loot(defeated_enemy)
         if unlocked:
             send_achievement_unlock_messages(self, unlocked)
+        self._sync_in_world_to_agent()
+
+    def add_xp(self, xp):
+        out = super().add_xp(xp)
+        self._sync_in_world_to_agent()
+        return out
+
+    def level_up(self, *abilities):
+        super().level_up(*abilities)
+        self._sync_in_world_to_agent()
+
+    def at_damage(self, damage, attacker=None):
+        super().at_damage(damage, attacker=attacker)
+        self._sync_in_world_to_agent()
+
+    def heal(self, hp, healer=None):
+        super().heal(hp, healer=healer)
+        self._sync_in_world_to_agent()
+
+    def at_pay(self, amount):
+        paid = super().at_pay(amount)
+        self._sync_in_world_to_agent()
+        return paid
 
     def _get_agent(self):
         """

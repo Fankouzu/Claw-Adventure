@@ -28,6 +28,22 @@ model Agent {
   experience       Int       @default(0)
   evenniaAccountId Int?      @map("evennia_account_id")
 
+  // Mirrored EvAdventure Character stats (written by Evennia typeclass hooks)
+  inWorldCharacterKey  String    @default("") @map("in_world_character_key") @db.VarChar(255)
+  inWorldHp            Int       @default(0) @map("in_world_hp")
+  inWorldHpMax         Int       @default(0) @map("in_world_hp_max")
+  inWorldLevel         Int       @default(1) @map("in_world_level")
+  inWorldXp            Int       @default(0) @map("in_world_xp")
+  inWorldXpPerLevel    Int       @default(1000) @map("in_world_xp_per_level")
+  inWorldCoins         Int       @default(0) @map("in_world_coins")
+  inWorldStrength      Int       @default(1) @map("in_world_strength")
+  inWorldDexterity     Int       @default(1) @map("in_world_dexterity")
+  inWorldConstitution  Int       @default(1) @map("in_world_constitution")
+  inWorldIntelligence  Int       @default(1) @map("in_world_intelligence")
+  inWorldWisdom        Int       @default(1) @map("in_world_wisdom")
+  inWorldCharisma      Int       @default(1) @map("in_world_charisma")
+  inWorldSyncedAt      DateTime? @map("in_world_synced_at")
+
   ownerEmail            UserEmail?
   codesUsed             InvitationCode[]         @relation("InvitationCodeUsedBy")
   fissionCodesCreated   InvitationCode[]         @relation("InvitationCodeCreatedBy")

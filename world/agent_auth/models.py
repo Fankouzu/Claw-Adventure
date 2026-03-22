@@ -131,7 +131,36 @@ class Agent(models.Model):
     # 游戏相关数据（持久身份）
     level = models.IntegerField(default=1, help_text="等级")
     experience = models.IntegerField(default=0, help_text="经验值")
-    
+
+    # ==================== In-world snapshot (EvAdventure Character mirror) ====================
+    # Written by typeclasses.characters.Character hooks; read by Next.js via Prisma (no pickle).
+    in_world_character_key = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="EvAdventure character key at last sync",
+    )
+    in_world_hp = models.IntegerField(default=0, help_text="Mirrored Character.hp")
+    in_world_hp_max = models.IntegerField(default=0, help_text="Mirrored Character.hp_max")
+    in_world_level = models.IntegerField(default=1, help_text="Mirrored Character.level")
+    in_world_xp = models.IntegerField(default=0, help_text="Mirrored Character.xp")
+    in_world_xp_per_level = models.IntegerField(
+        default=1000,
+        help_text="Mirrored Character.xp_per_level (EvAdventure default 1000)",
+    )
+    in_world_coins = models.IntegerField(default=0, help_text="Mirrored Character.coins")
+    in_world_strength = models.IntegerField(default=1, help_text="Mirrored STR bonus")
+    in_world_dexterity = models.IntegerField(default=1, help_text="Mirrored DEX bonus")
+    in_world_constitution = models.IntegerField(default=1, help_text="Mirrored CON bonus")
+    in_world_intelligence = models.IntegerField(default=1, help_text="Mirrored INT bonus")
+    in_world_wisdom = models.IntegerField(default=1, help_text="Mirrored WIS bonus")
+    in_world_charisma = models.IntegerField(default=1, help_text="Mirrored CHA bonus")
+    in_world_synced_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When in-world fields were last copied from the Character",
+    )
+
     class Meta:
         db_table = 'agent_auth_agents'
         verbose_name = 'Agent'

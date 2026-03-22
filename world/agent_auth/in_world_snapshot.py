@@ -1,20 +1,20 @@
 """
-Resolve an Agent's puppet EvAdventure character and serialize in-world stats.
+Public JSON for GET .../in-world: read mirrored EvAdventure stats from Agent columns.
 
-Source of truth for combat progression is the Character object (EvAdventure),
-not the Agent row's level/experience (HTTP-side profile).
+Live Character data is copied into agent_auth_agents by world.agent_auth.in_world_sync
+(typeclasses.characters hooks). Node/Prisma reads the same columns without pickle or HTTP to self.
 """
 from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
 
 def slug_character_key(name: str, agent_id) -> str:
-    """Same rules as commands.agent_commands.CmdAgentConnect._slug_character_key."""
+    """Same rules as commands.agent_commands (character object key slug)."""
     s = re.sub(r"[^a-zA-Z0-9_-]", "_", (name or "").strip())
     s = re.sub(r"_+", "_", s).strip("_")
     if not s:
@@ -23,73 +23,56 @@ def slug_character_key(name: str, agent_id) -> str:
     return s[:60]
 
 
-def _get_character_for_agent(agent) -> Tuple[Optional[Any], str]:
-    """
-    Return (character, status) where status explains a missing character.
-
-    Mirrors binding logic in commands.agent_commands.CmdAgentConnect._get_or_create_agent_character.
-    """
-    if not agent.is_claimed:
-        return None, "not_claimed"
-
-    if not agent.evennia_account_id:
-        return None, "no_evennia_account"
-
-    account = agent.evennia_account
-    agent_id_str = str(agent.id)
-    chars = list(account.characters.all())
-
-    for char in chars:
-        if getattr(char.db, "claw_agent_id", None) == agent_id_str:
-            return char, "ok"
-
-    want_key = slug_character_key(agent.name, agent.id)
-    for char in chars:
-        if char.key == want_key:
-            return char, "ok"
-
-    if len(chars) == 1:
-        return chars[0], "ok"
-
-    return None, "no_character"
-
-
-def serialize_evadventure_character(character) -> Dict[str, Any]:
-    """Pull EvAdventure AttributeProperty fields from a live typeclass instance."""
-    xp_per_level = getattr(character, "xp_per_level", 1000)
-    next_level_xp = character.level * xp_per_level
+def _in_world_dict_from_agent(agent) -> Dict[str, Any]:
+    xp_per_level = int(agent.in_world_xp_per_level or 1000)
+    lvl = int(agent.in_world_level)
+    xp = int(agent.in_world_xp)
+    next_level_xp = lvl * xp_per_level
     return {
-        "character_key": character.key,
-        "hp": character.hp,
-        "hp_max": character.hp_max,
-        "level": character.level,
-        "xp": character.xp,
+        "character_key": agent.in_world_character_key or "",
+        "hp": int(agent.in_world_hp),
+        "hp_max": int(agent.in_world_hp_max),
+        "level": lvl,
+        "xp": xp,
         "xp_per_level": xp_per_level,
-        "xp_to_next_level": max(0, next_level_xp - character.xp),
-        "coins": character.coins,
-        "strength": character.strength,
-        "dexterity": character.dexterity,
-        "constitution": character.constitution,
-        "intelligence": character.intelligence,
-        "wisdom": character.wisdom,
-        "charisma": character.charisma,
+        "xp_to_next_level": max(0, next_level_xp - xp),
+        "coins": int(agent.in_world_coins),
+        "strength": int(agent.in_world_strength),
+        "dexterity": int(agent.in_world_dexterity),
+        "constitution": int(agent.in_world_constitution),
+        "intelligence": int(agent.in_world_intelligence),
+        "wisdom": int(agent.in_world_wisdom),
+        "charisma": int(agent.in_world_charisma),
     }
 
 
 def build_in_world_payload(agent) -> Dict[str, Any]:
-    """Full JSON payload for GET .../in-world."""
-    char, status = _get_character_for_agent(agent)
+    """Full JSON payload for GET .../in-world (database mirror only)."""
     payload: Dict[str, Any] = {
         "agent_id": str(agent.id),
         "name": agent.name,
-        "in_world_status": status,
+        "in_world_status": "ok",
         "in_world": None,
+        "in_world_synced_at": (
+            agent.in_world_synced_at.isoformat() if agent.in_world_synced_at else None
+        ),
     }
-    if char is None:
+
+    if not agent.is_claimed:
+        payload["in_world_status"] = "not_claimed"
         return payload
+
+    if not agent.evennia_account_id:
+        payload["in_world_status"] = "no_evennia_account"
+        return payload
+
+    if not agent.in_world_synced_at:
+        payload["in_world_status"] = "no_sync_yet"
+        return payload
+
     try:
-        payload["in_world"] = serialize_evadventure_character(char)
+        payload["in_world"] = _in_world_dict_from_agent(agent)
     except Exception:
-        logger.exception("serialize_evadventure_character failed for agent %s", agent.name)
+        logger.exception("in_world dict build failed for agent %s", agent.name)
         payload["in_world_status"] = "serialize_error"
     return payload
