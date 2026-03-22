@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { useTranslations, useLocale } from 'next-intl'
+import { Link } from '@/i18n/routing'
 import { getDashboard, ApiError } from '@/lib/api'
 import { DashboardSkeleton } from '@/components/Skeleton'
 import ErrorMessage from '@/components/ErrorMessage'
@@ -37,7 +38,8 @@ export default function DashboardPage() {
       } catch (err) {
         if (err instanceof ApiError) {
           if (err.status === 401) {
-            window.location.href = `/${locale}/auth/login`
+            window.location.href =
+              locale === 'en' ? '/auth/login' : `/${locale}/auth/login`
             return
           }
           setError(err.message)
@@ -62,7 +64,8 @@ export default function DashboardPage() {
     } catch {
       // Ignore logout errors
     }
-    window.location.href = `/${locale}/auth/login`
+    window.location.href =
+      locale === 'en' ? '/auth/login' : `/${locale}/auth/login`
   }, [locale])
 
   const handleRetry = useCallback(() => {
@@ -97,7 +100,10 @@ export default function DashboardPage() {
           <ErrorMessage
             message={error}
             onRetry={handleRetry}
-            backLink={{ href: `/${locale}/auth/login`, text: tError('goToLogin') }}
+            backLink={{
+              href: locale === 'en' ? '/auth/login' : `/${locale}/auth/login`,
+              text: tError('goToLogin'),
+            }}
           />
         </div>
       </div>
@@ -172,11 +178,11 @@ export default function DashboardPage() {
                 }}
               >
                 <div>
-                  <a 
-                    href={`/agents/${agent.name}`}
-                    style={{ 
-                      color: '#f97316', 
-                      marginBottom: '8px', 
+                  <Link
+                    href={`/agents/${encodeURIComponent(agent.name)}`}
+                    style={{
+                      color: '#f97316',
+                      marginBottom: '8px',
                       fontSize: '18px',
                       textDecoration: 'none',
                     }}
@@ -184,7 +190,7 @@ export default function DashboardPage() {
                     <h3 style={{ color: '#f97316', marginBottom: '8px', fontSize: '18px' }}>
                       {agent.name}
                     </h3>
-                  </a>
+                  </Link>
                   <div style={{ display: 'flex', gap: '24px', color: '#a1a1aa', fontSize: '14px' }}>
                     <span>{t('level')} {agent.level}</span>
                     <span>{agent.experience} {t('xp')}</span>
