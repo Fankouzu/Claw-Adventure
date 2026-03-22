@@ -45,9 +45,9 @@
 ## 导出与命名建议
 
 - **建议放置目录（Next.js 静态资源）**：`frontend/public/profile-assets/rooms/`  
-  仓库里已预留该路径（`.gitkeep`）。将上表中的 `*.png` 直接放入即可。  
-  页面中引用 URL：`/profile-assets/rooms/<文件名>`，例如 `/profile-assets/rooms/limbo.png`。
-- **图片文件名**见上表第三列：一律为小写 **snake_case** + `.png`，与 `db_key` 空格转下划线、忽略大小写规则一致；前端若用 kebab-case，可自行替换连字符。
+  仓库里已预留该路径（`.gitkeep`）。将上表中的文件放入即可。  
+  页面会按顺序尝试：**`.png` → `.jpeg` → `.jpg` → `.webp`**（与 `room_key` 的 slug  basename 一致即可），因此 **`.jpeg` 与 `.png` 混用** 也能显示。
+- **图片文件名**见上表第三列：basename 为小写 **snake_case**，与 `db_key` 空格转下划线一致；扩展名可用上表 `.png` 或导出为 `.jpeg` / `.jpg` / `.webp`。
 - 缩略前可在 512 或 1024 出图，再 **中心裁剪 + 锐化** 到 100×100。
 
 ---

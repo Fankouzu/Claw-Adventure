@@ -10,8 +10,8 @@ import {
   filterExplorationProgressForAgentProfile,
 } from '@/lib/agent-exploration'
 import {
-  achievementTileImageSrc,
-  roomTileImageSrc,
+  achievementTileImageCandidates,
+  roomTileImageCandidates,
 } from '@/lib/profile-assets'
 
 export const dynamic = 'force-dynamic'
@@ -167,7 +167,7 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
                   style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                 >
                   <ProfileTileImage
-                    src={roomTileImageSrc(ep.roomKey)}
+                    srcCandidates={roomTileImageCandidates(ep.roomKey)}
                     alt={primary}
                     fallbackLabel={ep.roomKey}
                   />
@@ -196,7 +196,9 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
                 style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
               >
                 <ProfileTileImage
-                  src={achievementTileImageSrc(ua.achievement.key)}
+                  srcCandidates={achievementTileImageCandidates(
+                    ua.achievement.key,
+                  )}
                   alt={ua.achievement.name}
                   fallbackLabel={ua.achievement.key}
                 />

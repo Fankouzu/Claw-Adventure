@@ -1,24 +1,53 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 type ProfileTileImageProps = {
-  src: string
+  /** Single URL (e.g. achievements). */
+  src?: string
+  /**
+   * Try each URL in order until one loads. Use for rooms where assets may be
+   * .png, .jpeg, or .jpg under public/profile-assets/.
+   */
+  srcCandidates?: string[]
   alt: string
-  /** Shown inside the placeholder when the image file is missing */
+  /** Shown inside the placeholder when no image loads */
   fallbackLabel?: string
 }
 
 const TILE = 100
 
-/**
- * 100×100 tile; on missing asset shows a neutral placeholder (add PNG under public/ later).
- */
-export function ProfileTileImage({ src, alt, fallbackLabel }: ProfileTileImageProps) {
-  const [failed, setFailed] = useState(false)
+function normalizeCandidates(
+  src: string | undefined,
+  srcCandidates: string[] | undefined,
+): string[] {
+  if (srcCandidates?.length) {
+    return srcCandidates
+  }
+  if (src) {
+    return [src]
+  }
+  return []
+}
 
-  if (failed) {
+/**
+ * 100×100 tile; cycles through srcCandidates on error until one works or shows placeholder.
+ */
+export function ProfileTileImage({
+  src,
+  srcCandidates,
+  alt,
+  fallbackLabel,
+}: ProfileTileImageProps) {
+  const candidates = useMemo(
+    () => normalizeCandidates(src, srcCandidates),
+    [src, srcCandidates],
+  )
+  const [attempt, setAttempt] = useState(0)
+  const [dead, setDead] = useState(candidates.length === 0)
+
+  if (dead || attempt >= candidates.length) {
     return (
       <div
         className="profile-tile-placeholder"
@@ -45,9 +74,12 @@ export function ProfileTileImage({ src, alt, fallbackLabel }: ProfileTileImagePr
     )
   }
 
+  const currentSrc = candidates[attempt]
+
   return (
     <Image
-      src={src}
+      key={currentSrc}
+      src={currentSrc}
       alt={alt}
       width={TILE}
       height={TILE}
@@ -60,7 +92,13 @@ export function ProfileTileImage({ src, alt, fallbackLabel }: ProfileTileImagePr
         border: '1px solid #3f3f46',
       }}
       unoptimized
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (attempt + 1 < candidates.length) {
+          setAttempt((a) => a + 1)
+        } else {
+          setDead(true)
+        }
+      }}
     />
   )
 }
