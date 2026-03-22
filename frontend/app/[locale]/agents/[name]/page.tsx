@@ -15,11 +15,33 @@ interface ProfilePageProps {
   params: Promise<{ name: string }>
 }
 
-async function getAgentByName(name: string) {
+async function getAgentProfile(name: string) {
   const decoded = decodeURIComponent(name)
-  return prisma.agent.findUnique({
+  const row = await prisma.agent.findUnique({
     where: { name: decoded },
+    include: {
+      userAchievements: {
+        orderBy: { unlockedAt: 'desc' },
+        take: 24,
+        include: { achievement: true },
+      },
+      _count: {
+        select: {
+          userAchievements: true,
+          explorationProgress: true,
+        },
+      },
+    },
   })
+  if (!row) {
+    return null
+  }
+  const forPoints = await prisma.userAchievement.findMany({
+    where: { agentId: row.id },
+    select: { achievement: { select: { points: true } } },
+  })
+  const totalPoints = forPoints.reduce((s, u) => s + u.achievement.points, 0)
+  return { row, totalPoints }
 }
 
 function statusHint(status: string): string {
@@ -41,10 +63,13 @@ function statusHint(status: string): string {
 
 export default async function AgentProfilePage({ params }: ProfilePageProps) {
   const { name } = await params
-  const row = await getAgentByName(name)
-  if (!row) {
+  const profile = await getAgentProfile(name)
+  if (!profile) {
     notFound()
   }
+  const { row, totalPoints } = profile
+  const achUnlocked = row._count.userAchievements
+  const roomsVisited = row._count.explorationProgress
 
   const iwBlock = inWorldViewFromAgentRow(row)
 
@@ -175,6 +200,69 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
           >
             <p style={{ margin: 0, fontSize: '15px' }}>{statusHint(iwBlock.status)}</p>
           </div>
+        )}
+
+        <h2 style={{ fontSize: '16px', color: '#fafafa', margin: '24px 0 12px' }}>
+          Achievement progress (DB)
+        </h2>
+        <p style={{ fontSize: '13px', color: '#71717a', margin: '0 0 12px' }}>
+          Tracked per agent from exploration and story hooks — differs from EvAdventure mirror stats above.
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '15px',
+            margin: '12px 0',
+          }}
+        >
+          <div className="stat">
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#22c55e' }}>
+              {roomsVisited}
+            </div>
+            <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>Rooms visited</div>
+          </div>
+          <div className="stat">
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#22c55e' }}>
+              {achUnlocked}
+            </div>
+            <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>Achievements</div>
+          </div>
+          <div className="stat">
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#22c55e' }}>
+              {totalPoints}
+            </div>
+            <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>Points</div>
+          </div>
+        </div>
+        {row.userAchievements.length > 0 ? (
+          <>
+            <h3 style={{ fontSize: '14px', color: '#a1a1aa', margin: '16px 0 8px' }}>
+              Recent unlocks
+            </h3>
+            <ul
+              style={{
+                margin: 0,
+                paddingLeft: '18px',
+                color: '#d4d4d8',
+                fontSize: '14px',
+                lineHeight: 1.5,
+              }}
+            >
+              {row.userAchievements.map((ua) => (
+                <li key={ua.id}>
+                  <strong style={{ color: '#e4e4e7' }}>{ua.achievement.name}</strong>
+                  <span style={{ color: '#71717a', marginLeft: '8px' }}>
+                    ({ua.achievement.key}) +{ua.achievement.points}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p style={{ fontSize: '14px', color: '#71717a', margin: '8px 0 0' }}>
+            No achievements unlocked yet — play through the tutorial to populate this section.
+          </p>
         )}
 
         {row.claimStatus === 'claimed' && row.twitterHandle && (

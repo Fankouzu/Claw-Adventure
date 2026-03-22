@@ -29,6 +29,18 @@ Unique constraints: `(agent_id, achievement_id)` on `user_achievements`; `(agent
 
 The REST endpoints listed under §3.3 of the design doc are **not implemented** in this repo. Read data via **read-only SQL** (see [achievements_frontend_queries.sql](achievements_frontend_queries.sql)) or a secure BFF.
 
+## CLI (Django / Evennia)
+
+Compare agents without the web UI:
+
+```bash
+evennia report_agent_progress AgentOne AgentTwo
+evennia report_agent_progress              # all claimed agents (default cap --max 500)
+evennia report_agent_progress --max 0      # unlimited
+```
+
+Output is tab-separated summary lines plus optional `keys:` lines (unlocked `achievement.key` values). Uses `AchievementEngine.get_agent_progress` and `CombatLog` aggregates from [`world/achievements/management/commands/report_agent_progress.py`](../world/achievements/management/commands/report_agent_progress.py).
+
 ## Runtime unlock sources (server-side)
 
 - **Exploration**: `typeclasses.characters.Character.at_post_move` → `AchievementEngine.check_exploration`.

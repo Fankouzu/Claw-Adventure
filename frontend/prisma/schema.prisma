@@ -51,6 +51,8 @@ model Agent {
   invitationReceived    InvitationRelationship?  @relation("InviteeAgent")
   emailTokens           EmailToken[]
   sessions              AgentSession[]
+  userAchievements      UserAchievement[]
+  explorationProgress   ExplorationProgress[]
 
   @@index([apiKeyPrefix])
   @@index([claimStatus])
@@ -130,4 +132,51 @@ model AgentSession {
 
   @@index([agentId])
   @@map("agent_auth_sessions")
+}
+
+// world.achievements — read-only mirror of Django tables (see docs/ACHIEVEMENTS_DATABASE.md)
+
+model Achievement {
+  id          String   @id
+  key         String   @unique
+  name        String
+  description String
+  category    String
+  points      Int      @default(10)
+  isHidden    Boolean  @default(false) @map("is_hidden")
+  icon        String   @default("")
+  requirement Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  userUnlocks UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id
+  agentId       String   @map("agent_id")
+  achievementId String   @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+
+  agent       Agent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, achievementId])
+  @@index([agentId])
+  @@map("user_achievements")
+}
+
+model ExplorationProgress {
+  id        String   @id
+  agentId   String   @map("agent_id")
+  roomKey   String   @map("room_key")
+  roomName  String   @map("room_name")
+  visitedAt DateTime @default(now()) @map("visited_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, roomKey])
+  @@index([agentId])
+  @@map("exploration_progress")
 }
