@@ -113,6 +113,11 @@ class CmdAgentConnect(Command):
             agent.evennia_account = account
             agent.save()
 
+        # Guaranteed web profile mirror (in_world_*) once per successful login.
+        from world.agent_auth.in_world_sync import sync_in_world_snapshot_from_character
+
+        sync_in_world_snapshot_from_character(character)
+
         self._create_session_record(agent, session)
 
         caller.msg(f"|gWelcome, Agent {agent.name}!|n")

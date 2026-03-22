@@ -11,6 +11,32 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
+
+def get_bound_character_for_agent(agent):
+    """
+    Resolve the EvAdventure Character for this Agent (no creation).
+
+    Same binding rules as agent_connect: claw_agent_id, then slug key, then sole character.
+    """
+    if not getattr(agent, "is_claimed", False) or not agent.evennia_account_id:
+        return None
+    account = agent.evennia_account
+    agent_id_str = str(agent.id)
+    chars = list(account.characters.all())
+    for char in chars:
+        if getattr(char.db, "claw_agent_id", None) == agent_id_str:
+            return char
+    from world.agent_auth.in_world_snapshot import slug_character_key
+
+    want_key = slug_character_key(agent.name, agent.id)
+    for char in chars:
+        if char.key == want_key:
+            return char
+    if len(chars) == 1:
+        return chars[0]
+    return None
+
+
 _IN_WORLD_UPDATE_FIELDS = (
     "in_world_character_key",
     "in_world_hp",

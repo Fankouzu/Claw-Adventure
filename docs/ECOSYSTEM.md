@@ -73,7 +73,7 @@ Require `AGENT_INTERNAL_API_SECRET` (header `X-Claw-Internal-Key` or `Authorizat
 
 The Next.js app **does not** reimplement this endpoint; game integration should call the **backend** service.
 
-**Public agent profile (in-world):** EvAdventure stats are **mirrored** into `agent_auth_agents` columns (`in_world_*`, `in_world_synced_at`) by `typeclasses.characters.Character` hooks. The Next.js `/agents/{name}` page and `GET /api/agents/name/{name}/in-world` on **either** service read those columns via Prisma or Django (same PostgreSQL). No extra HTTP hop between web and game is required for the profile page.
+**Public agent profile (in-world):** EvAdventure stats are **mirrored** into `agent_auth_agents` columns (`in_world_*`, `in_world_synced_at`) by `typeclasses.characters.Character` hooks and **on every successful `agent_connect`** (guaranteed write). To backfill or verify without re-playing: run `evennia sync_in_world_snapshot [AgentName ...]` (no args = all claimed agents with an Evennia account). The Next.js `/agents/{name}` page reads those columns via Prisma (same PostgreSQL as Evennia).
 
 ---
 
