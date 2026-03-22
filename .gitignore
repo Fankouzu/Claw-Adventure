@@ -68,3 +68,7 @@ frontend/node_modules/
 # evennia-mcp
 evennia-mcp/node_modules/
 evennia-mcp/mcp-config.json
+
+# Generated Evennia world inventory exports (see docs/world_snapshots/README.md)
+docs/world_snapshots/*.jsonl
+docs/world_snapshots/*.csv

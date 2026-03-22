@@ -157,6 +157,12 @@ evennia makemigrations agent_auth
 evennia migrate agent_auth
 ```
 
+## World rebuild and database inventory
+
+Rebuilding the in-game world from an empty database and exporting what exists in `objects_objectdb` (read-only): see `docs/WORLD_REBUILD.md`. Script: `scripts/list_evennia_objectdb_inventory.py` with `DATABASE_URL` (PostgreSQL) or `SQLITE_DB_PATH` / `sqlite:///...` DSN.
+
+**Code-defined world (Git → deploy):** Edit `world/codeworld/definitions.py`; Railway runs `evennia sync_codeworld` after migrate (`server/start.sh`). Details: `world/codeworld/README.md`.
+
 ## Deployment (Railway)
 
 The project is configured for Railway deployment:

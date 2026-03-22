@@ -152,7 +152,12 @@ LLM_SYSTEM_PROMPT = os.environ.get(
 ######################################################################
 
 # 注册 Agent Auth 和 Achievements Django Apps
-INSTALLED_APPS += ['world.agent_auth', 'corsheaders', 'world.achievements']
+INSTALLED_APPS += [
+    'world.agent_auth',
+    'corsheaders',
+    'world.achievements',
+    'world.codeworld.apps.CodeworldConfig',
+]
 
 # API CSRF 豁免中间件（必须在 CsrfViewMiddleware 之前）
 # 检查并添加中间件

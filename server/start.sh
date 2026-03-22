@@ -11,6 +11,10 @@ export DJANGO_SETTINGS_MODULE=server.conf.settings
 echo "[STARTUP] Running database migrations..."
 evennia migrate --noinput 2>&1 || evennia migrate 2>&1
 
+# Materialize Git-defined rooms / objects / exits (idempotent)
+echo "[STARTUP] Syncing code-defined world content (world.codeworld)..."
+evennia sync_codeworld 2>&1
+
 # Create superuser using Django's environment variable method
 echo "[STARTUP] Checking/Creating superuser..."
 
