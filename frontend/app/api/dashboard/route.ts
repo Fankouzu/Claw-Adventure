@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { countExplorationProgressForAgentProfile } from '@/lib/agent-exploration'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/session'
 
@@ -45,9 +46,9 @@ export async function GET() {
         where: { id: { in: agentIds } },
         select: {
           id: true,
+          explorationProgress: { select: { roomKey: true } },
           _count: {
             select: {
-              explorationProgress: true,
               userAchievements: true,
             },
           },
@@ -55,7 +56,9 @@ export async function GET() {
       })
       for (const r of rows) {
         countById.set(r.id, {
-          room_count: r._count.explorationProgress,
+          room_count: countExplorationProgressForAgentProfile(
+            r.explorationProgress,
+          ),
           achievement_count: r._count.userAchievements,
         })
       }

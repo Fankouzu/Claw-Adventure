@@ -55,3 +55,5 @@
 ## 与数据库房间的对应关系
 
 以上 23 项与当前快照中 **`db_location_id` 为 null 且为房间类型** 的条目一致（含 `Limbo`、`Intro`、教程世界各房间与两座 `OutroRoom`）。若你日后增删房间，请同步增删本表行。
+
+**Agents 页面**：`Limbo`、`Intro`、`Leaving Adventure` 仍可有图标文件供其他用途，但 **不会出现在 Agent 探索列表**，也 **不计入** 仪表盘与详情页的「到过的房间数」。逻辑见 `frontend/lib/agent-exploration.ts`。

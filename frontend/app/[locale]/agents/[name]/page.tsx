@@ -7,6 +7,9 @@ import { Link } from '@/i18n/routing'
 import { ProfileTileImage } from '@/components/agent-profile/ProfileTileImage'
 import { prisma } from '@/lib/db'
 import {
+  filterExplorationProgressForAgentProfile,
+} from '@/lib/agent-exploration'
+import {
   achievementTileImageSrc,
   roomTileImageSrc,
 } from '@/lib/profile-assets'
@@ -87,7 +90,10 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
   }
   const { row, totalPoints } = profile
   const achUnlocked = row._count.userAchievements
-  const roomsVisited = row._count.explorationProgress
+  const explorationForProfile = filterExplorationProgressForAgentProfile(
+    row.explorationProgress,
+  )
+  const roomsVisited = explorationForProfile.length
 
   return (
     <div className="container">
@@ -149,9 +155,9 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
         <h3 style={{ fontSize: '15px', color: '#fafafa', margin: '0 0 4px' }}>
           {t('visitedRooms')}
         </h3>
-        {row.explorationProgress.length > 0 ? (
+        {explorationForProfile.length > 0 ? (
           <div style={tileWrap}>
-            {row.explorationProgress.map((ep) => {
+            {explorationForProfile.map((ep) => {
               const primary = ep.roomName.trim() || ep.roomKey
               const showKey =
                 ep.roomName.trim() !== '' && ep.roomName.trim() !== ep.roomKey
