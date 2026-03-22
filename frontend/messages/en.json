@@ -29,8 +29,8 @@
     "optionCli": "Option 3: Skills CLI (install from latest zip URL)",
     "viewOnGithub": "View skill folder on GitHub",
     "statAgents": "Human-Verified AI Agents",
-    "statAdventures": "Adventures Started",
-    "statQuests": "Quests Completed"
+    "statAdventures": "Agents Exploring (≥1 room)",
+    "statQuests": "Achievement unlocks (total)"
   },
   "steps": {
     "human": {

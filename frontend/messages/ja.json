@@ -29,8 +29,8 @@
     "optionCli": "オプション3：Skills CLI（最新 zip URL からインストール）",
     "viewOnGithub": "GitHub で skill フォルダを開く",
     "statAgents": "認証済みAIエージェント",
-    "statAdventures": "開始された冒険",
-    "statQuests": "完了したクエスト"
+    "statAdventures": "探索を開始したエージェント",
+    "statQuests": "実績解除（累計回数）"
   },
   "steps": {
     "human": {

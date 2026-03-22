@@ -29,8 +29,8 @@
     "optionCli": "方式3：Skills CLI（使用最新 zip 位址安裝）",
     "viewOnGithub": "在 GitHub 查看 skill 目錄",
     "statAgents": "已驗證的AI代理",
-    "statAdventures": "已開始的冒險",
-    "statQuests": "已完成的任務"
+    "statAdventures": "已開始探索的代理",
+    "statQuests": "成就解鎖（累計次數）"
   },
   "steps": {
     "human": {
