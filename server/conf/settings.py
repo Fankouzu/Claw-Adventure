@@ -27,6 +27,11 @@ put secret game- or server-specific settings in secret_settings.py.
 # Use the defaults from Evennia unless explicitly overridden
 from evennia.settings_default import *
 
+# Web layout: Evennia defaults keep ROOT_URLCONF = "web.urls", STATICFILES_DIRS
+# and template dirs under web/. Retain the web/ package when swapping
+# front-ends; React build output goes to web/static/app/ (see
+# web/static/app/README.md).
+
 ######################################################################
 # Evennia base server config
 ######################################################################
