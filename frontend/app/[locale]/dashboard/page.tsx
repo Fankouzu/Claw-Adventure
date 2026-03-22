@@ -11,8 +11,8 @@ import ErrorMessage from '@/components/ErrorMessage'
 interface AgentInfo {
   id: string
   name: string
-  level: number
-  experience: number
+  room_count: number
+  achievement_count: number
   claim_status: string
   twitter_handle?: string
 }
@@ -192,8 +192,12 @@ export default function DashboardPage() {
                     </h3>
                   </Link>
                   <div style={{ display: 'flex', gap: '24px', color: '#a1a1aa', fontSize: '14px' }}>
-                    <span>{t('level')} {agent.level}</span>
-                    <span>{agent.experience} {t('xp')}</span>
+                    <span>
+                      {t('roomsExplored')} {agent.room_count}
+                    </span>
+                    <span>
+                      {t('achievements')} {agent.achievement_count}
+                    </span>
                     {agent.twitter_handle && (
                       <span>
                         <a 

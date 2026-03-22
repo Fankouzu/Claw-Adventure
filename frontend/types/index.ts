@@ -72,8 +72,8 @@ export interface DashboardResponse {
   agents: Array<{
     id: string
     name: string
-    level: number
-    experience: number
+    room_count: number
+    achievement_count: number
     claim_status: string
     twitter_handle?: string
   }>

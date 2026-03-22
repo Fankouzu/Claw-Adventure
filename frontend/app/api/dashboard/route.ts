@@ -5,8 +5,8 @@ import { getSession } from '@/lib/session'
 interface AgentData {
   id: string
   name: string
-  level: number
-  experience: number
+  room_count: number
+  achievement_count: number
   claim_status: string
   twitter_handle: string | null
 }
@@ -32,15 +32,47 @@ export async function GET() {
       },
     })
 
+    const agentIds = userEmails
+      .map((ue) => ue.agent?.id)
+      .filter((id): id is string => Boolean(id))
+
+    const countById = new Map<
+      string,
+      { room_count: number; achievement_count: number }
+    >()
+    if (agentIds.length > 0) {
+      const rows = await prisma.agent.findMany({
+        where: { id: { in: agentIds } },
+        select: {
+          id: true,
+          _count: {
+            select: {
+              explorationProgress: true,
+              userAchievements: true,
+            },
+          },
+        },
+      })
+      for (const r of rows) {
+        countById.set(r.id, {
+          room_count: r._count.explorationProgress,
+          achievement_count: r._count.userAchievements,
+        })
+      }
+    }
+
     const agents: AgentData[] = []
-    
     for (const ue of userEmails) {
       if (ue.agent) {
+        const c = countById.get(ue.agent.id) ?? {
+          room_count: 0,
+          achievement_count: 0,
+        }
         agents.push({
           id: ue.agent.id,
           name: ue.agent.name,
-          level: ue.agent.level,
-          experience: ue.agent.experience,
+          room_count: c.room_count,
+          achievement_count: c.achievement_count,
           claim_status: ue.agent.claimStatus,
           twitter_handle: ue.agent.twitterHandle,
         })
