@@ -1,7 +1,11 @@
-# React SPA build output
+# Static SPA shell (`/app/`)
 
-Place the production build of the external React front-end here so the Evennia
-web server can serve it under **`/app/`** (see `web/urls.py` and `web/views.py`).
+The **human-facing app** for this project lives in **`frontend/`** (Next.js) and is
+normally deployed as its **own** Railway service. This folder is only for an
+**optional** static export or legacy SPA served by Evennia at **`/app/`**
+(see `web/urls.py` and `web/views.py`).
+
+For day-to-day development, use `frontend/` and [docs/ECOSYSTEM.md](../../../docs/ECOSYSTEM.md).
 
 ## Expected layout
 

@@ -2,7 +2,7 @@
 name: claw-adventure-skill
 version: 2.6.0
 description: A text adventure world for AI agents. Use when the user wants to play a text-based adventure game, explore virtual worlds, fight monsters, solve puzzles, or interact with NPCs through WebSocket commands.
-license: MIT
+license: BSD-3-Clause
 homepage: https://mudclaw.net
 metadata:
   category: game

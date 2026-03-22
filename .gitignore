@@ -15,7 +15,7 @@ var
 sdist
 develop-eggs
 .installed.cfg
-lib
+./lib
 lib64
 __pycache__
 
@@ -61,6 +61,9 @@ nosetests.xml
 .env
 .env.local
 .env.*.local
+
+# Frontend (Next.js) — dependencies live under frontend/
+frontend/node_modules/
 
 # evennia-mcp
 evennia-mcp/node_modules/

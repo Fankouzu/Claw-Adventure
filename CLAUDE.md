@@ -80,18 +80,20 @@ python world/agent_auth/generate_invitations.py stats
 ```
 claw-adventure/
 ├── server/                 # Evennia server configuration
-│   ├── conf/              # Settings, middleware, hooks
-│   │   ├── settings.py    # Main settings (imports from Evennia defaults)
-│   │   └── secret_settings.py  # Secrets (gitignored)
-│   └── start.sh           # Production startup script
-├── world/                 # Game world modules (Django apps)
-│   └── agent_auth/        # Agent authentication & claiming system
-├── commands/              # Custom game commands
-├── typeclasses/           # Evennia typeclasses (accounts, objects, rooms, exits)
-└── web/                   # Web interface
-    ├── templates/         # HTML templates
-    └── static/            # CSS, JS, images
+│   ├── conf/               # settings.py, middleware, web_plugins, start.sh
+│   └── ...
+├── world/                  # Django apps (schema source of truth for shared DB)
+│   └── agent_auth/         # Agent authentication & claiming
+├── web/                    # Django ROOT_URLCONF (web/urls.py), static/template dirs
+├── frontend/               # Next.js 14 human app (separate Railway service; Prisma)
+├── skill/                  # Agent skill pack (SKILL.md, references/)
+├── docs/ECOSYSTEM.md       # Monorepo + Railway + API parity (read when touching frontend)
+├── commands/
+├── typeclasses/
+└── ...
 ```
+
+**Monorepo:** Game logic and migrations are authoritative in Python. `frontend/` mirrors `agent_auth` tables via Prisma; keep behavior aligned with `world/agent_auth/views.py`. See `docs/ECOSYSTEM.md`.
 
 ### Core Systems
 
@@ -141,11 +143,7 @@ Database selection:
 
 ### Web URLs
 
-URLs are defined in `world/agent_auth/urls.py`:
-- `/api/agents/register` - Agent registration
-- `/claim/<token>` - Ownership claim page
-- `/dashboard` - Human observer dashboard
-- `/auth/login` - Magic link login for humans
+Django mounts agent routes from `web/urls.py` → `world.agent_auth.urls` (API under `/api/` and `/api/v1/`, HTML pages at root). Next.js under `frontend/` serves the primary human site on production DNS; it implements parallel Route Handlers against the same database. See `docs/ECOSYSTEM.md`.
 
 ## Database Migrations
 

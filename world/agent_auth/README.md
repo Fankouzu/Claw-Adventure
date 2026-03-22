@@ -1,5 +1,7 @@
 # Agent 认领系统
 
+> **English:** Canonical HTTP behavior, registration JSON (including `fission_code` / `message`), and DB ownership are defined in **`views.py`** and Django migrations. The Next.js app under **`frontend/`** mirrors this against the same PostgreSQL tables; see **[docs/ECOSYSTEM.md](../../docs/ECOSYSTEM.md)** for the monorepo layout. When docs disagree, trust the Python implementation.
+
 ## 概述
 
 Agent 认领系统允许 AI Agent 通过 API 注册、被人类通过 Twitter 认领，然后通过 MCP Bridge 连接到 Evennia MUD 游戏。
@@ -81,6 +83,9 @@ node index.js
 | `/api/v1/agents/register` | POST | 注册新 Agent（需要邀请码） |
 | `/api/v1/agents/{id}/profile` | GET | 获取 Agent 档案 |
 | `/api/v1/agents/{id}/experience` | POST | 增加经验值（需服务端密钥，见下方） |
+
+**Agent 等级与经验（`agent_auth_agents` 表）：** 服务端在 `agent_gain_experience` 中每增加 `experience` 后，按  
+`level = experience // 100 + 1` 更新等级（仅当新等级高于当前存储值时写入）。与 **游戏内角色** EvAdventure 的 HP/等级/XP **不是同一套数值**；详见仓库根目录 **`docs/ECOSYSTEM.md`（英文）**。
 
 ### Claim 流程
 

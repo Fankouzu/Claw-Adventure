@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Schema maps Django tables in world.agent_auth — source of truth for columns
+// is Django migrations; keep Prisma in sync when models change.
+
+model Agent {
+  id               String    @id
+  name             String    @unique
+  description      String    @default("")
+  apiKeyHash       String    @unique @map("api_key_hash")
+  apiKeyPrefix     String    @map("api_key_prefix")
+  claimToken       String    @unique @map("claim_token")
+  claimStatus      String    @default("pending") @map("claim_status")
+  claimExpiresAt   DateTime? @map("claim_expires_at")
+  twitterHandle    String?   @map("twitter_handle")
+  tweetUrl         String?   @map("tweet_url")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  claimedAt        DateTime? @map("claimed_at")
+  lastActiveAt     DateTime? @map("last_active_at")
+  level            Int       @default(1)
+  experience       Int       @default(0)
+  evenniaAccountId Int?      @map("evennia_account_id")
+
+  ownerEmail            UserEmail?
+  codesUsed             InvitationCode[]         @relation("InvitationCodeUsedBy")
+  fissionCodesCreated   InvitationCode[]         @relation("InvitationCodeCreatedBy")
+  invitationsSent       InvitationRelationship[] @relation("InviterAgent")
+  invitationReceived    InvitationRelationship?  @relation("InviteeAgent")
+  emailTokens           EmailToken[]
+  sessions              AgentSession[]
+
+  @@index([apiKeyPrefix])
+  @@index([claimStatus])
+  @@map("agent_auth_agents")
+}
+
+model InvitationCode {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  codeType    String    @default("admin") @map("code_type")
+  isUsed      Boolean   @default(false) @map("is_used")
+  usedById    String?   @map("used_by_id")
+  usedBy      Agent?    @relation("InvitationCodeUsedBy", fields: [usedById], references: [id], onDelete: SetNull)
+  createdById String?   @map("created_by_id")
+  createdBy   Agent?    @relation("InvitationCodeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  generation  Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  usedAt      DateTime? @map("used_at")
+  note        String    @default("")
+  relationships InvitationRelationship[]
+
+  @@index([isUsed])
+  @@map("agent_auth_invitation_codes")
+}
+
+model InvitationRelationship {
+  id        BigInt   @id @default(autoincrement())
+  inviterId String?  @map("inviter_id")
+  inviter   Agent?   @relation("InviterAgent", fields: [inviterId], references: [id], onDelete: SetNull)
+  inviteeId String   @unique @map("invitee_id")
+  invitee   Agent    @relation("InviteeAgent", fields: [inviteeId], references: [id], onDelete: Cascade)
+  codeId    Int?     @map("code_id")
+  code      InvitationCode? @relation(fields: [codeId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("agent_auth_invitation_relationships")
+}
+
+model UserEmail {
+  id         String    @id
+  email      String    @unique
+  agentId    String    @unique @map("agent_id")
+  agent      Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  isVerified Boolean   @default(false) @map("is_verified")
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@map("agent_auth_user_emails")
+}
+
+model EmailToken {
+  id        String   @id
+  token     String   @unique
+  email     String
+  tokenType String   @map("token_type")
+  isUsed    Boolean  @default(false) @map("is_used")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  agentId   String?  @map("agent_id")
+  agent     Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([email])
+  @@map("agent_auth_email_tokens")
+}
+
+model AgentSession {
+  id             String    @id
+  agentId        String    @map("agent_id")
+  agent          Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  connectedAt    DateTime  @default(now()) @map("connected_at")
+  disconnectedAt DateTime? @map("disconnected_at")
+  ipAddress      String?   @map("ip_address")
+  userAgent      String    @default("") @map("user_agent")
+
+  @@index([agentId])
+  @@map("agent_auth_sessions")
+}

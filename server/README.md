@@ -1,6 +1,8 @@
-# server/ 
+# server/
 
-This directory holds files used by and configuring the Evennia server 
+**Claw Adventure:** For Railway (two services, shared DB) and how this fits with `frontend/`, read [../docs/ECOSYSTEM.md](../docs/ECOSYSTEM.md).
+
+This directory holds files used by and configuring the Evennia server
 itself.
 
 Out of all the subdirectories in the game directory, Evennia does
