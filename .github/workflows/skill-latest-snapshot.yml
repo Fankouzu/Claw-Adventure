@@ -1,5 +1,7 @@
-# Rolling pre-release "skill-latest": always reflects the tip of `main` for `skill/`.
-# Use stable bundles from the versioned workflow + semver tag skill-v*.*.* instead for agents in production.
+# Refreshes pre-release tag "skill-latest" + asset claw-adventure-skill-latest.zip.
+# External docs can use a permanent URL:
+#   https://github.com/<owner>/<repo>/releases/download/skill-latest/claw-adventure-skill-latest.zip
+# Versioned releases (skill-v*) also rewrite this release so tagged ships and main-branch WIP both update the same link.
 
 name: Skill release (latest snapshot)
 
@@ -46,19 +48,26 @@ jobs:
       - name: Replace skill-latest pre-release
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+          SKILL_VER: ${{ steps.meta.outputs.version }}
         run: |
           set -euo pipefail
           gh release delete skill-latest --yes --cleanup-tag 2>/dev/null || true
           NOTES_FILE=$(mktemp)
+          URL="https://github.com/${REPO}/releases/download/skill-latest/claw-adventure-skill-latest.zip"
           {
-            echo "Automated snapshot from commit \`${{ github.sha }}\` on \`${{ github.ref_name }}\`."
+            echo "**Stable download link** (same path after every update):"
             echo ""
-            echo "Bundled \`skill/SKILL.md\` version: **${{ steps.meta.outputs.version }}**."
+            echo "\`${URL}\`"
             echo ""
-            echo "For a stable, semver-tagged bundle, use the newest **Claw Adventure Skill v\*** release (tag \`skill-v*\`)."
+            echo "Snapshot from \`${REF_NAME}\` @ \`${SHA:0:7}\`; \`skill/SKILL.md\` version **${SKILL_VER}**."
+            echo ""
+            echo "Semver-tagged archives: release **Claw Adventure Skill v\*** (tag \`skill-v*\`)."
           } > "$NOTES_FILE"
           gh release create skill-latest claw-adventure-skill-latest.zip \
-            --title "Claw Adventure Skill (latest snapshot)" \
+            --title "Claw Adventure Skill (latest zip — stable URL)" \
             --notes-file "$NOTES_FILE" \
             --prerelease \
-            --target "${{ github.sha }}"
+            --target "$SHA"

@@ -80,18 +80,36 @@ After `agent_connect`, the server **auto-puppets your Agent character**. Send ga
 
 ## GitHub Releases (when this skill lives in `claw-adventure`)
 
-Maintainers use Actions to ship the `skill/` tree as a zip:
+### Stable download URL (never change your external links)
 
-| Release | When | Asset | Notes |
-|---------|------|-------|--------|
-| **Latest** (default) | New semver release published | `claw-adventure-skill-X.Y.Z.zip` | GitHub shows the newest non-prerelease as *Latest*. |
-| **skill-latest** (pre-release) | Every push to `main` that changes `skill/` | `claw-adventure-skill-latest.zip` | Rolling snapshot; prefer a tagged release for stability. |
+Use this pattern — **tag** and **filename** stay the same forever; Actions replace the zip when you ship:
+
+```
+https://github.com/<owner>/<repo>/releases/download/skill-latest/claw-adventure-skill-latest.zip
+```
+
+Example (this upstream repo):  
+`https://github.com/Fankouzu/Claw-Adventure/releases/download/skill-latest/claw-adventure-skill-latest.zip`
+
+The zip is refreshed when:
+
+- You push **`skill-v*.*.*`** (versioned release workflow), or
+- **`main`** / **`master`** updates under `skill/` (snapshot workflow).
+
+GitHub’s green **Latest** badge still points at the newest **semver** release (`skill-v2.6.0`, …); `skill-latest` is a **pre-release** so it does not steal that badge.
+
+### Maintainer table
+
+| Release | When | Asset |
+|---------|------|--------|
+| **Latest** (GitHub UI) | New semver tag | `claw-adventure-skill-X.Y.Z.zip` |
+| **skill-latest** (pre-release) | Tag push or `skill/` change on default branch | `claw-adventure-skill-latest.zip` ← **fixed URL above** |
 
 **Ship a versioned release**
 
 1. Bump `version:` in [SKILL.md](SKILL.md).
 2. Commit and push a tag: `skill-vX.Y.Z` (must match `version`, e.g. `skill-v2.6.0`).
-3. Workflow **Skill release (versioned)** builds the zip and creates/updates the release.
+3. Workflow **Skill release (versioned)** publishes the semver zip **and** updates `skill-latest`.
 
 **Manual run:** Actions → *Skill release (versioned)* → *Run workflow* (uses the current `version:` in `SKILL.md` and tag `skill-v{version}`).
 

@@ -60,3 +60,31 @@ jobs:
           files: ${{ steps.meta.outputs.zip_name }}
           generate_release_notes: true
           make_latest: true
+
+      # Same asset name + tag "skill-latest" => permanent URL for external docs:
+      # https://github.com/<owner>/<repo>/releases/download/skill-latest/claw-adventure-skill-latest.zip
+      - name: Update skill-latest (stable download URL)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          SHA: ${{ github.sha }}
+          ZIP_NAME: ${{ steps.meta.outputs.zip_name }}
+        run: |
+          set -euo pipefail
+          cp "$ZIP_NAME" claw-adventure-skill-latest.zip
+          gh release delete skill-latest --yes --cleanup-tag 2>/dev/null || true
+          NOTES_FILE=$(mktemp)
+          URL="https://github.com/${REPO}/releases/download/skill-latest/claw-adventure-skill-latest.zip"
+          {
+            echo "**Stable download link** (safe to hard-code in blogs, dashboards, agent prompts):"
+            echo ""
+            echo "\`${URL}\`"
+            echo ""
+            echo "Contents match **Claw Adventure Skill v${VERSION}** at \`${SHA:0:7}\`."
+          } > "$NOTES_FILE"
+          gh release create skill-latest claw-adventure-skill-latest.zip \
+            --title "Claw Adventure Skill (latest zip — stable URL)" \
+            --notes-file "$NOTES_FILE" \
+            --prerelease \
+            --target "$SHA"
