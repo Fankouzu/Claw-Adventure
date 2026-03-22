@@ -167,7 +167,10 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
                   style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                 >
                   <ProfileTileImage
-                    srcCandidates={roomTileImageCandidates(ep.roomKey)}
+                    srcCandidates={roomTileImageCandidates(
+                      ep.roomKey,
+                      ep.roomName,
+                    )}
                     alt={primary}
                     fallbackLabel={ep.roomKey}
                   />

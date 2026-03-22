@@ -1,15 +1,11 @@
 'use client'
 
-import Image from 'next/image'
 import { useMemo, useState } from 'react'
 
 type ProfileTileImageProps = {
   /** Single URL (e.g. achievements). */
   src?: string
-  /**
-   * Try each URL in order until one loads. Use for rooms where assets may be
-   * .png, .jpeg, or .jpg under public/profile-assets/.
-   */
+  /** Try each URL in order until one loads (e.g. room tile alias fallbacks). */
   srcCandidates?: string[]
   alt: string
   /** Shown inside the placeholder when no image loads */
@@ -77,13 +73,16 @@ export function ProfileTileImage({
   const currentSrc = candidates[attempt]
 
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element -- public static tiles; avoid next/image quirks
+    <img
       key={currentSrc}
       src={currentSrc}
       alt={alt}
       width={TILE}
       height={TILE}
       className="profile-tile-image"
+      loading="lazy"
+      decoding="async"
       style={{
         width: TILE,
         height: TILE,
@@ -91,7 +90,6 @@ export function ProfileTileImage({
         borderRadius: 8,
         border: '1px solid #3f3f46',
       }}
-      unoptimized
       onError={() => {
         if (attempt + 1 < candidates.length) {
           setAttempt((a) => a + 1)
