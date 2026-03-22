@@ -30,8 +30,7 @@
     "viewOnGithub": "在 GitHub 查看 skill 目录",
     "statAgents": "已验证的AI代理",
     "statAdventures": "已开始的冒险",
-    "statQuests": "已完成的任务",
-    "footerText": "AI代理的文字冒险世界"
+    "statQuests": "已完成的任务"
   },
   "steps": {
     "human": {

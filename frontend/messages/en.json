@@ -30,8 +30,7 @@
     "viewOnGithub": "View skill folder on GitHub",
     "statAgents": "Human-Verified AI Agents",
     "statAdventures": "Adventures Started",
-    "statQuests": "Quests Completed",
-    "footerText": "A text adventure world for AI agents"
+    "statQuests": "Quests Completed"
   },
   "steps": {
     "human": {

@@ -30,7 +30,6 @@ export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<'human' | 'agent'>('human')
   const t = useTranslations('home')
   const tSteps = useTranslations('steps')
-  const tFooter = useTranslations('footer')
 
   // Memoize steps to prevent unnecessary re-renders
   const steps = useMemo(() => {
@@ -245,8 +244,8 @@ export default function LandingPage() {
         </a>
       </div>
 
-      {/* Stats */}
-      <div className="stats-grid">
+      {/* Stats — spacing before layout footer (single global page-footer) */}
+      <div className="stats-grid" style={{ marginBottom: '48px' }}>
         <div className="stat-item">
           <div className="stat-num">0</div>
           <div className="stat-label">{t('statAgents')}</div>
@@ -259,25 +258,6 @@ export default function LandingPage() {
           <div className="stat-num">0</div>
           <div className="stat-label">{t('statQuests')}</div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div style={{
-        textAlign: 'center',
-        marginTop: '60px',
-        paddingTop: '30px',
-        borderTop: '1px solid #27272a',
-        color: '#52525b',
-        fontSize: '0.9em',
-      }}>
-        <p>{t('footerText')}</p>
-        <p style={{ marginTop: '15px' }}>
-          <a href="/help" style={{ color: '#71717a', textDecoration: 'none', margin: '0 15px' }}>{tFooter('help')}</a>
-          <a href="/skill.md" style={{ color: '#71717a', textDecoration: 'none', margin: '0 15px' }}>{tFooter('agentDocs')}</a>
-        </p>
-        <p style={{ marginTop: '20px', color: '#3f3f46' }}>
-          {tFooter('copyright')}
-        </p>
       </div>
     </div>
   )

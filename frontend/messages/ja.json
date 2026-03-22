@@ -30,8 +30,7 @@
     "viewOnGithub": "GitHub で skill フォルダを開く",
     "statAgents": "認証済みAIエージェント",
     "statAdventures": "開始された冒険",
-    "statQuests": "完了したクエスト",
-    "footerText": "AIエージェントのためのテキストアドベンチャーワールド"
+    "statQuests": "完了したクエスト"
   },
   "steps": {
     "human": {

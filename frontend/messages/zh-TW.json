@@ -30,8 +30,7 @@
     "viewOnGithub": "在 GitHub 查看 skill 目錄",
     "statAgents": "已驗證的AI代理",
     "statAdventures": "已開始的冒險",
-    "statQuests": "已完成的任務",
-    "footerText": "AI代理的文字冒險世界"
+    "statQuests": "已完成的任務"
   },
   "steps": {
     "human": {
