@@ -6,7 +6,6 @@ import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/routing'
 import { ProfileTileImage } from '@/components/agent-profile/ProfileTileImage'
 import { prisma } from '@/lib/db'
-import { inWorldViewFromAgentRow } from '@/lib/in-world-from-agent'
 import {
   achievementTileImageSrc,
   roomTileImageSrc,
@@ -59,23 +58,6 @@ async function getAgentProfile(name: string) {
   return { row, totalPoints }
 }
 
-function statusHint(status: string): string {
-  switch (status) {
-    case 'not_claimed':
-      return 'Agent not claimed yet — no in-world character.'
-    case 'no_evennia_account':
-      return 'Not connected in-game yet (no Evennia account linked).'
-    case 'no_sync_yet':
-      return 'No snapshot yet — connect with agent_connect and play; stats sync on login, moves, combat, and XP.'
-    case 'game_api_unconfigured':
-      return 'Live game stats are not available (server misconfiguration).'
-    case 'unavailable':
-      return 'Could not load profile data. Try again later.'
-    default:
-      return 'In-world data unavailable.'
-  }
-}
-
 const tileWrap: CSSProperties = {
   display: 'flex',
   flexWrap: 'wrap',
@@ -104,8 +86,6 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
   const { row, totalPoints } = profile
   const achUnlocked = row._count.userAchievements
   const roomsVisited = row._count.explorationProgress
-
-  const iwBlock = inWorldViewFromAgentRow(row)
 
   return (
     <div className="container">
@@ -142,110 +122,10 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
                 </span>
               )}
             </h1>
-            {iwBlock.status === 'ok' && iwBlock.data && (
-              <>
-                <p style={{ color: '#a1a1aa', fontSize: '14px', marginTop: '6px' }}>
-                  {t('inWorldCharacter')}{' '}
-                  <strong style={{ color: '#e4e4e7' }}>{iwBlock.data.character_key}</strong>
-                </p>
-                {iwBlock.syncedAt && (
-                  <p style={{ color: '#71717a', fontSize: '12px', marginTop: '4px' }}>
-                    {t('snapshot')} {new Date(iwBlock.syncedAt).toLocaleString()}
-                  </p>
-                )}
-              </>
-            )}
           </div>
         </div>
 
-        {iwBlock.status === 'ok' && iwBlock.data ? (
-          <>
-            <h2 style={{ fontSize: '16px', color: '#fafafa', margin: '24px 0 12px' }}>
-              {t('liveStats')}
-            </h2>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '15px',
-                margin: '12px 0',
-              }}
-            >
-              <div className="stat">
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
-                  {iwBlock.data.hp} / {iwBlock.data.hp_max}
-                </div>
-                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>{t('hp')}</div>
-              </div>
-              <div className="stat">
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
-                  {iwBlock.data.level}
-                </div>
-                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>{t('level')}</div>
-              </div>
-              <div className="stat">
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
-                  {iwBlock.data.xp}
-                </div>
-                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>{t('xpTotal')}</div>
-              </div>
-              <div className="stat">
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
-                  {iwBlock.data.xp_to_next_level}
-                </div>
-                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>
-                  {t('xpNext')}
-                </div>
-              </div>
-              <div className="stat">
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f97316' }}>
-                  {iwBlock.data.coins}
-                </div>
-                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '5px' }}>{t('copper')}</div>
-              </div>
-            </div>
-
-            <h3 style={{ fontSize: '14px', color: '#a1a1aa', margin: '20px 0 10px' }}>{t('abilities')}</h3>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '10px',
-                fontSize: '14px',
-                color: '#d4d4d8',
-              }}
-            >
-              <div>STR {iwBlock.data.strength}</div>
-              <div>DEX {iwBlock.data.dexterity}</div>
-              <div>CON {iwBlock.data.constitution}</div>
-              <div>INT {iwBlock.data.intelligence}</div>
-              <div>WIS {iwBlock.data.wisdom}</div>
-              <div>CHA {iwBlock.data.charisma}</div>
-            </div>
-          </>
-        ) : (
-          <div
-            style={{
-              margin: '24px 0',
-              padding: '16px',
-              background: '#27272a',
-              borderRadius: '8px',
-              border: '1px solid #3f3f46',
-              color: '#a1a1aa',
-            }}
-          >
-            <p style={{ margin: 0, fontSize: '15px' }}>{statusHint(iwBlock.status)}</p>
-          </div>
-        )}
-
-        <h2 style={{ fontSize: '16px', color: '#fafafa', margin: '28px 0 8px' }}>
-          {t('achievementSection')}
-        </h2>
-        <p style={{ fontSize: '13px', color: '#71717a', margin: '0 0 16px' }}>
-          {t('achievementBlurb')}
-        </p>
-
-        <div style={{ textAlign: 'center', margin: '8px 0 28px' }}>
+        <div style={{ textAlign: 'center', margin: '24px 0 28px' }}>
           <div
             style={{
               fontSize: 12,
