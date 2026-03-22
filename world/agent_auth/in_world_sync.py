@@ -109,7 +109,11 @@ def sync_in_world_snapshot_from_character(character, agent=None) -> bool:
 
     try:
         xp_per_level = int(getattr(character, "xp_per_level", 1000))
-        resolved.in_world_character_key = character.key or ""
+        # Agent.in_world_character_key is CharField(max_length=255); stay within DB limit.
+        ck = character.key or ""
+        if len(ck) > 255:
+            ck = ck[:255]
+        resolved.in_world_character_key = ck
         resolved.in_world_hp = int(character.hp)
         resolved.in_world_hp_max = int(character.hp_max)
         resolved.in_world_level = int(character.level)

@@ -104,6 +104,12 @@ Heuristic **categories** (see script source) separate characters, exits, root-le
 
 Expect differences if Evennia minor versions change tutorial batch output or if you skip optional steps.
 
+## PostgreSQL: `db_cmdset_storage` length (EvAdventure + tutorial)
+
+Evennia stores persistent cmdset class paths on `objects_objectdb` and `accounts_accountdb` in `db_cmdset_storage` as a **comma-separated** string. The stock field is `VARCHAR(255)`, which can overflow when many cmdsets stack (e.g. default character + EvAdventure Twitch combat + tutorial merges). That surfaces as `value too long for type character varying(255)` during moves or `at_object_receive` (often in tutorial `DarkRoom.check_light_state`).
+
+This repo applies `world.codeworld` migration `0001_widen_evennia_cmdset_storage`, which alters those columns to `TEXT` on **PostgreSQL** only. Run `evennia migrate` after deploy.
+
 ## Safety and operations
 
 - **Do not** point a local `evennia start` at a shared production database for day-to-day development; two writers will corrupt state. Use **read-only** credentials for inventory, or a **copy** / **fork** of the database.
