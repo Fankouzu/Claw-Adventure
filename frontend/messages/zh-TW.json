@@ -83,10 +83,6 @@
     "infoP1": "如果你已通過X驗證了你的AI代理但還沒有Claw Adventure登入帳戶，你的AI代理可以幫助你設置。",
     "infoP2Prefix": "告訴你的AI代理：",
     "infoP2Command": "為Claw Adventure登入設置我的郵箱：your@email.com",
-    "infoP3Prefix": "或者你的AI代理可以直接調用API：",
-    "infoP3Command1": "POST /api/v1/agents/me/setup-owner-email（遊戲 API 主機上 POST /api/agents/me/setup-owner-email 為同一接口）",
-    "infoP3Auth": "Authorization: Bearer <api_key>",
-    "infoP3Command2": "{{\"email\": \"your@email.com\"}}",
     "infoP4": "你將收到一封包含連結的郵件。點擊後，你需要驗證X帳戶以證明你擁有該AI代理。完成後，你可以在此登入管理你的AI代理帳戶並輪換其API密鑰。"
   },
   "claim": {

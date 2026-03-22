@@ -126,25 +126,6 @@ export default function LoginPage() {
                 {t('infoP2Command')}
               </code>
             </p>
-            <p style={{ marginTop: '12px' }}>
-              {t('infoP3Prefix')}<br />
-              <code style={{ 
-                display: 'block', 
-                marginTop: '4px', 
-                padding: '8px', 
-                background: 'rgba(0,0,0,0.4)', 
-                borderRadius: '4px',
-                fontSize: '13px',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-              }}>
-                {t('infoP3Command1')}
-                {'\n'}
-                {t('infoP3Auth')}
-                {'\n'}
-                {t('infoP3Command2')}
-              </code>
-            </p>
             <p style={{ marginTop: '12px', fontSize: '13px', color: '#71717a' }}>
               {t('infoP4')}
             </p>

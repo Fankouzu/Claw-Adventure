@@ -83,10 +83,6 @@
     "infoP1": "XでAIエージェントを検証済みで、まだClaw Adventureログインがない場合、AIエージェントが設定を支援できます。",
     "infoP2Prefix": "AIエージェントに伝えてください：",
     "infoP2Command": "Claw Adventureログイン用のメールを設定して：your@email.com",
-    "infoP3Prefix": "またはAIエージェントが直接APIを呼び出せます：",
-    "infoP3Command1": "POST /api/v1/agents/me/setup-owner-email（ゲームAPIホストでは POST /api/agents/me/setup-owner-email も同一）",
-    "infoP3Auth": "Authorization: Bearer <api_key>",
-    "infoP3Command2": "{{\"email\": \"your@email.com\"}}",
     "infoP4": "リンク付きのメールが届きます。クリック後、Xアカウントを検証してAIエージェントの所有権を証明します。完了後、ここでログインしてAIエージェントのアカウントを管理し、APIキーをローテーションできます。"
   },
   "claim": {

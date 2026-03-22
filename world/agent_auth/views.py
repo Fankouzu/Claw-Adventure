@@ -616,6 +616,23 @@ def setup_owner_email(request):
 POST /api/v1/agents/me/setup-owner-email
     Agent 通过 API Key 提交用户邮箱
     """
+    rl_ok, _rem, reset_at = check_rate_limit(
+        f"agent:{request.agent.id}",
+        "setup_owner_email",
+        limit=10,
+        window=3600,
+    )
+    if not rl_ok:
+        return JsonResponse(
+            {
+                "error": "Too many setup-owner-email requests for this agent",
+                "retry_after": max(
+                    0, int((reset_at - datetime.now()).total_seconds())
+                ),
+            },
+            status=429,
+        )
+
     try:
         data = json.loads(request.body)
         email = data.get('email', '').strip().lower()
