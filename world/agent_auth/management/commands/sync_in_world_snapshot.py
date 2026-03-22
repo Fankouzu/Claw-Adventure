@@ -54,7 +54,13 @@ class Command(BaseCommand):
                     self.style.WARNING(f"SKIP {agent.name}: no bound character")
                 )
                 continue
-            sync_in_world_snapshot_from_character(char)
-            self.stdout.write(
-                self.style.SUCCESS(f"OK {agent.name} <- character {char.key!r}")
-            )
+            if sync_in_world_snapshot_from_character(char, agent=agent):
+                self.stdout.write(
+                    self.style.SUCCESS(f"OK {agent.name} <- character {char.key!r}")
+                )
+            else:
+                self.stderr.write(
+                    self.style.ERROR(
+                        f"FAIL {agent.name}: sync did not persist (see server logs)"
+                    )
+                )

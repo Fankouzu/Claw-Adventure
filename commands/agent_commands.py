@@ -116,7 +116,7 @@ class CmdAgentConnect(Command):
         # Guaranteed web profile mirror (in_world_*) once per successful login.
         from world.agent_auth.in_world_sync import sync_in_world_snapshot_from_character
 
-        sync_in_world_snapshot_from_character(character)
+        sync_in_world_snapshot_from_character(character, agent=agent)
 
         self._create_session_record(agent, session)
 
