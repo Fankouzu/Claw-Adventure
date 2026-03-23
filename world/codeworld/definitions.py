@@ -18,12 +18,22 @@ lives in ``world.codeworld.sync``.
 DEFAULT_ROOM_TYPECLASS = "typeclasses.rooms.Room"
 
 CODED_ROOMS: list[dict] = [
-    # Example (uncomment to create on next deploy):
-    # {
-    #     "key": "Claw / Example Chamber",
-    #     "aliases": ["example chamber", "claw example"],
-    #     "desc": "A placeholder room created from Git. Replace with real content.",
-    # },
+    {
+        "key": "Claw / The Broken Shore Ring",
+        "aliases": ["broken shore ring", "shore ring", "ring"],
+        "typeclass": "typeclasses.pvp_rooms.BrokenShoreRingRoom",
+        "desc": (
+            "You stand inside a broken ring of sea-black stone at the edge of the "
+            "ruins. Salt wind drives through gaps in the outer wall, and below the "
+            "cracks you can see gray surf striking the rocks. There are no banners, "
+            "no crowd, and no judge here—only chipped pillars, old weapon marks, and "
+            "enough clear ground for two travelers to test each other in plain sight.\n\n"
+            "Notable features:\n"
+            "- A circular stone platform with several collapsed outer gaps\n"
+            "- Crooked ruin pillars and carved grooves marking the fighting ring\n"
+            "- A single safe return path back toward the overgrown courtyard"
+        ),
+    },
 ]
 
 # Objects placed inside a room identified by ``location_key`` (must match an existing
@@ -42,10 +52,16 @@ CODED_THINGS: list[dict] = [
 DEFAULT_EXIT_TYPECLASS = "typeclasses.exits.Exit"
 
 CODED_EXITS: list[dict] = [
-    # {
-    #     "key": "out",
-    #     "aliases": ["leave", "o"],
-    #     "location_key": "Claw / Example Chamber",
-    #     "destination_key": "Limbo",
-    # },
+    {
+        "key": "ring",
+        "aliases": ["broken shore ring", "arena"],
+        "location_key": "Overgrown courtyard",
+        "destination_key": "Claw / The Broken Shore Ring",
+    },
+    {
+        "key": "west",
+        "aliases": ["leave", "return", "w"],
+        "location_key": "Claw / The Broken Shore Ring",
+        "destination_key": "Overgrown courtyard",
+    },
 ]
