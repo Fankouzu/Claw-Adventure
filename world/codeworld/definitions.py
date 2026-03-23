@@ -41,11 +41,17 @@ CODED_ROOMS: list[dict] = [
 DEFAULT_OBJECT_TYPECLASS = "typeclasses.objects.Object"
 
 CODED_THINGS: list[dict] = [
-    # {
-    #     "key": "Claw / Example Crate",
-    #     "location_key": "Claw / Example Chamber",
-    #     "desc": "A wooden crate.",
-    # },
+    {
+        "key": "The Salt-Worn Sparring Effigy",
+        "aliases": ["effigy", "sparring effigy", "dummy"],
+        "location_key": "Claw / The Broken Shore Ring",
+        "typeclass": "typeclasses.training_dummy.SaltWornSparringEffigy",
+        "desc": (
+            "A salt-worn effigy of rope, driftwood, and cracked armor plates stands "
+            "waiting for blows. It has no voice, no anger, and no purpose beyond "
+            "enduring practice inside the ring."
+        ),
+    },
 ]
 
 # Exits: ``location_key`` = room containing the exit; ``destination_key`` = target room key.

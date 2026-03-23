@@ -35,3 +35,12 @@ class BrokenShoreRingDefinitionsTest(SimpleTestCase):
             if exit_["location_key"] == "Claw / The Broken Shore Ring"
         }
         self.assertIn("Overgrown courtyard", safe_targets)
+
+    def test_broken_shore_ring_contains_training_effigy(self):
+        self.assertTrue(
+            any(
+                thing["key"] == "The Salt-Worn Sparring Effigy"
+                and thing["location_key"] == "Claw / The Broken Shore Ring"
+                for thing in defs.CODED_THINGS
+            )
+        )
