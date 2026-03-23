@@ -98,8 +98,7 @@ class Character(EvAdventureCharacter):
 
         home_id = self.db_home_id
         bad_home = (
-            home_id is not None
-            and not ObjectDB.objects.filter(id=home_id).exists()
+            home_id is not None and not ObjectDB.objects.filter(id=home_id).exists()
         )
 
         try:
@@ -163,9 +162,7 @@ class Character(EvAdventureCharacter):
         room_name = self.location.key
 
         try:
-            unlocked = AchievementEngine.check_exploration(
-                agent, room_key, room_name
-            )
+            unlocked = AchievementEngine.check_exploration(agent, room_key, room_name)
         except Exception:
             logger.exception(
                 "Achievement check_exploration failed (room_key=%r)", room_key
@@ -214,7 +211,19 @@ class Character(EvAdventureCharacter):
         self._sync_in_world_to_agent()
 
     def at_damage(self, damage, attacker=None):
+        from typeclasses.pvp_progression import (
+            is_arena_pvp,
+            record_arena_pvp_damage,
+            resolve_arena_pvp_defeat,
+        )
+
+        hp_before = int(getattr(self, "hp", 0) or 0)
         super().at_damage(damage, attacker=attacker)
+        actual_damage = max(0, min(int(damage), hp_before))
+        if is_arena_pvp(attacker, self):
+            record_arena_pvp_damage(attacker, self, actual_damage)
+            if self.hp <= 0:
+                resolve_arena_pvp_defeat(attacker, self)
         self._sync_in_world_to_agent()
 
     def heal(self, hp, healer=None):
@@ -237,6 +246,7 @@ class Character(EvAdventureCharacter):
             return None
 
         from world.agent_auth.models import Agent
+
         try:
             return Agent.objects.get(evennia_account=self.account)
         except Agent.DoesNotExist:
