@@ -23,15 +23,4 @@ class Exit(ObjectParent, DefaultExit):
 
     """
 
-    def at_traverse(self, traversing_object, target_location, **kwargs):
-        from typeclasses.pvp_rooms import BrokenShoreRingRoom
-
-        if (
-            self.key == "ring"
-            and isinstance(target_location, BrokenShoreRingRoom)
-            and getattr(traversing_object, "key", "").strip().lower()
-            == "ghostly apparition"
-        ):
-            traversing_object.msg("The ghost cannot cross into the ring.")
-            return
-        return super().at_traverse(traversing_object, target_location, **kwargs)
+    pass
