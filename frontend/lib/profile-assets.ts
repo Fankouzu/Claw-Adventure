@@ -30,6 +30,11 @@ const TUTORIAL_ROOM_KEY_TO_SLUG: Record<string, string> = {
   'tut#16': 'end_of_adventure',
 }
 
+/** Room image basename for a tut#NN key, if defined (for profile slot matching). */
+export function tutorialRoomKeyToProfileBasename(roomKey: string): string | undefined {
+  return TUTORIAL_ROOM_KEY_TO_SLUG[roomKey.trim().toLowerCase()]
+}
+
 /** Stock tutorial display keys → asset basenames (Claw uses rebranded room names in files). */
 const ROOM_KEY_ALIAS_SLUG: Record<string, string> = {
   'outside evennia inn': 'outside_dragon_inn',
@@ -127,3 +132,6 @@ export function achievementTileImageCandidates(achievementKey: string): string[]
 export function achievementTileImageSrc(achievementKey: string): string {
   return `/profile-assets/achievements/${slugForProfileAsset(achievementKey)}${ACHIEVEMENT_EXT}`
 }
+
+/** Placeholder tile for unexplored rooms / locked achievements on agent profile. */
+export const PROFILE_NO_IMAGE_SRC = '/profile-assets/no_image.jpeg'

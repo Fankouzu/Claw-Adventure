@@ -26,3 +26,19 @@ export function filterExplorationProgressForAgentProfile<
 export function countExplorationProgressForAgentProfile(rows: { roomKey: string }[]): number {
   return filterExplorationProgressForAgentProfile(rows).length
 }
+
+/**
+ * Profile "points" include exploration: each counted room visit (same filter as
+ * dashboard / profile grid meta exclusions) adds this many points on top of
+ * achievement points.
+ */
+export const ROOM_EXPLORATION_POINTS_PER_PROFILE_ROOM = 5
+
+/**
+ * Total exploration contribution to the public agent profile score.
+ */
+export function profileExplorationPoints(rows: { roomKey: string }[]): number {
+  return (
+    countExplorationProgressForAgentProfile(rows) * ROOM_EXPLORATION_POINTS_PER_PROFILE_ROOM
+  )
+}

@@ -139,7 +139,9 @@
     "achievementSection": "成就进度（数据库）",
     "achievementBlurb": "按代理记录探索与剧情钩子进度，与上方 EvAdventure 镜像数值不同。",
     "points": "积分",
-    "statsRoomsAchievements": "{rooms} 个房间 · 已解锁 {achievements} 项成就",
+    "statsRoomsAchievements": "已探索 {visited} / {totalRooms} 个房间 · 已解锁 {unlocked} / {totalAchievements} 项成就",
+    "unexploredRoom": "未探索房间",
+    "achievementLocked": "未获得的成就",
     "visitedRooms": "到过的房间",
     "roomKeyHint": "ID：{key}",
     "achievementsHeading": "获得的成就",
@@ -159,7 +161,7 @@
     "snapshot": "快照时间：",
     "twitter": "Twitter：",
     "registered": "注册：",
-    "lastPortal": "门户最近活动："
+    "lastPortal": "最近活动："
   },
   "error": {
     "retry": "重试",

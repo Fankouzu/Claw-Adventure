@@ -5,13 +5,21 @@ import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/routing'
 import { ProfileTileImage } from '@/components/agent-profile/ProfileTileImage'
+import {
+  AGENT_PROFILE_ROOM_TOTAL,
+  buildAgentProfileAchievementSlots,
+  buildAgentProfileRoomSlots,
+} from '@/lib/agent-profile-display'
 import { prisma } from '@/lib/db'
 import {
   filterExplorationProgressForAgentProfile,
+  profileExplorationPoints,
 } from '@/lib/agent-exploration'
 import {
   achievementTileImageCandidates,
+  PROFILE_NO_IMAGE_SRC,
   roomTileImageCandidates,
+  slugForProfileAsset,
 } from '@/lib/profile-assets'
 
 export const dynamic = 'force-dynamic'
@@ -33,32 +41,37 @@ export async function generateMetadata({
 
 async function getAgentProfile(name: string) {
   const decoded = decodeURIComponent(name)
-  const row = await prisma.agent.findUnique({
-    where: { name: decoded },
-    include: {
-      explorationProgress: {
-        orderBy: { visitedAt: 'asc' },
-      },
-      userAchievements: {
-        orderBy: { unlockedAt: 'desc' },
-        include: { achievement: true },
-      },
-      _count: {
-        select: {
-          userAchievements: true,
-          explorationProgress: true,
+  const [row, allAchievements] = await Promise.all([
+    prisma.agent.findUnique({
+      where: { name: decoded },
+      include: {
+        explorationProgress: {
+          orderBy: { visitedAt: 'asc' },
+        },
+        userAchievements: {
+          orderBy: { unlockedAt: 'desc' },
+          include: { achievement: true },
+        },
+        _count: {
+          select: {
+            userAchievements: true,
+            explorationProgress: true,
+          },
         },
       },
-    },
-  })
+    }),
+    prisma.achievement.findMany(),
+  ])
   if (!row) {
     return null
   }
-  const totalPoints = row.userAchievements.reduce(
+  const achievementPoints = row.userAchievements.reduce(
     (s, u) => s + u.achievement.points,
     0,
   )
-  return { row, totalPoints }
+  const explorationPoints = profileExplorationPoints(row.explorationProgress)
+  const totalPoints = achievementPoints + explorationPoints
+  return { row, totalPoints, allAchievements }
 }
 
 // Even column widths across the card; each tile centered in its cell.
@@ -81,6 +94,11 @@ const figCaption: CSSProperties = {
   wordBreak: 'break-word',
 }
 
+const figCaptionMuted: CSSProperties = {
+  ...figCaption,
+  color: '#71717a',
+}
+
 export default async function AgentProfilePage({ params }: ProfilePageProps) {
   const { locale, name } = await params
   const t = await getTranslations({ locale, namespace: 'agentProfile' })
@@ -88,12 +106,42 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
   if (!profile) {
     notFound()
   }
-  const { row, totalPoints } = profile
+  const { row, totalPoints, allAchievements } = profile
   const achUnlocked = row._count.userAchievements
   const explorationForProfile = filterExplorationProgressForAgentProfile(
     row.explorationProgress,
   )
-  const roomsVisited = explorationForProfile.length
+
+  const { slots: roomSlots, orphans: roomOrphans } = buildAgentProfileRoomSlots(
+    explorationForProfile,
+  )
+
+  const roomsVisitedOnGrid = roomSlots.filter((s) => s.kind === 'visited').length
+
+  const achievementDefs = allAchievements.map((a) => ({
+    id: a.id,
+    key: a.key,
+    name: a.name,
+    points: a.points,
+    isHidden: a.isHidden,
+  }))
+
+  const achievementSlots = buildAgentProfileAchievementSlots(
+    achievementDefs,
+    row.userAchievements.map((ua) => ({
+      id: ua.id,
+      achievementId: ua.achievementId,
+      achievement: {
+        id: ua.achievement.id,
+        key: ua.achievement.key,
+        name: ua.achievement.name,
+        points: ua.achievement.points,
+        isHidden: ua.achievement.isHidden,
+      },
+    })),
+  )
+
+  const achievementTotalOnPage = achievementSlots.length
 
   return (
     <div className="container">
@@ -148,75 +196,162 @@ export default async function AgentProfilePage({ params }: ProfilePageProps) {
             {totalPoints}
           </div>
           <p style={{ fontSize: 14, color: '#a1a1aa', margin: '12px 0 0' }}>
-            {t('statsRoomsAchievements', { rooms: roomsVisited, achievements: achUnlocked })}
+            {t('statsRoomsAchievements', {
+              visited: roomsVisitedOnGrid,
+              totalRooms: AGENT_PROFILE_ROOM_TOTAL,
+              unlocked: achUnlocked,
+              totalAchievements: achievementTotalOnPage,
+            })}
           </p>
         </div>
 
         <h3 style={{ fontSize: '15px', color: '#fafafa', margin: '0 0 4px' }}>
           {t('visitedRooms')}
         </h3>
-        {explorationForProfile.length > 0 ? (
-          <div style={tileWrap}>
-            {explorationForProfile.map((ep) => {
+        <div style={tileWrap}>
+          {roomSlots.map((slot) => {
+            if (slot.kind === 'visited') {
+              const ep = slot.row
               const primary = ep.roomName.trim() || ep.roomKey
               const showKey =
                 ep.roomName.trim() !== '' && ep.roomName.trim() !== ep.roomKey
               return (
                 <figure
                   key={ep.id}
-                  style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                  style={{
+                    margin: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                  }}
                 >
                   <ProfileTileImage
-                    srcCandidates={roomTileImageCandidates(
-                      ep.roomKey,
-                      ep.roomName,
-                    )}
+                    srcCandidates={roomTileImageCandidates(ep.roomKey, ep.roomName)}
                     alt={primary}
                     fallbackLabel={ep.roomKey}
                   />
                   <figcaption style={figCaption}>{primary}</figcaption>
                   {showKey ? (
-                    <span style={{ fontSize: 11, color: '#71717a', maxWidth: 120, textAlign: 'center' }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: '#71717a',
+                        maxWidth: 120,
+                        textAlign: 'center',
+                      }}
+                    >
                       {t('roomKeyHint', { key: ep.roomKey })}
                     </span>
                   ) : null}
                 </figure>
               )
-            })}
-          </div>
-        ) : (
-          <p style={{ fontSize: '14px', color: '#71717a', margin: '8px 0 0' }}>{t('noRooms')}</p>
-        )}
+            }
+            const lockKey = `locked-room-${slugForProfileAsset(slot.canonical)}`
+            return (
+              <figure
+                key={lockKey}
+                style={{
+                  margin: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
+              >
+                <ProfileTileImage
+                  src={PROFILE_NO_IMAGE_SRC}
+                  alt={t('unexploredRoom')}
+                  fallbackLabel="…"
+                />
+                <figcaption style={figCaptionMuted}>{t('unexploredRoom')}</figcaption>
+              </figure>
+            )
+          })}
+          {roomOrphans.map((ep) => {
+            const primary = ep.roomName.trim() || ep.roomKey
+            const showKey =
+              ep.roomName.trim() !== '' && ep.roomName.trim() !== ep.roomKey
+            return (
+              <figure
+                key={`orphan-${ep.id}`}
+                style={{
+                  margin: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
+              >
+                <ProfileTileImage
+                  srcCandidates={roomTileImageCandidates(ep.roomKey, ep.roomName)}
+                  alt={primary}
+                  fallbackLabel={ep.roomKey}
+                />
+                <figcaption style={figCaption}>{primary}</figcaption>
+                {showKey ? (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: '#71717a',
+                      maxWidth: 120,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {t('roomKeyHint', { key: ep.roomKey })}
+                  </span>
+                ) : null}
+              </figure>
+            )
+          })}
+        </div>
 
         <h3 style={{ fontSize: '15px', color: '#fafafa', margin: '28px 0 4px' }}>
           {t('achievementsHeading')}
         </h3>
-        {row.userAchievements.length > 0 ? (
-          <div style={tileWrap}>
-            {row.userAchievements.map((ua) => (
+        <div style={tileWrap}>
+          {achievementSlots.map((slot) => {
+            if (slot.kind === 'unlocked') {
+              const ua = slot.ua
+              return (
+                <figure
+                  key={ua.id}
+                  style={{
+                    margin: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                  }}
+                >
+                  <ProfileTileImage
+                    srcCandidates={achievementTileImageCandidates(ua.achievement.key)}
+                    alt={ua.achievement.name}
+                    fallbackLabel={ua.achievement.key}
+                  />
+                  <figcaption style={figCaption}>{ua.achievement.name}</figcaption>
+                  <span style={{ fontSize: 12, color: '#71717a' }}>
+                    {t('achievementPoints', { points: ua.achievement.points })}
+                  </span>
+                </figure>
+              )
+            }
+            return (
               <figure
-                key={ua.id}
-                style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                key={`locked-ach-${slot.achievementKey}`}
+                style={{
+                  margin: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
               >
                 <ProfileTileImage
-                  srcCandidates={achievementTileImageCandidates(
-                    ua.achievement.key,
-                  )}
-                  alt={ua.achievement.name}
-                  fallbackLabel={ua.achievement.key}
+                  src={PROFILE_NO_IMAGE_SRC}
+                  alt={t('achievementLocked')}
+                  fallbackLabel="…"
                 />
-                <figcaption style={figCaption}>{ua.achievement.name}</figcaption>
-                <span style={{ fontSize: 12, color: '#71717a' }}>
-                  {t('achievementPoints', { points: ua.achievement.points })}
-                </span>
+                <figcaption style={figCaptionMuted}>{t('achievementLocked')}</figcaption>
               </figure>
-            ))}
-          </div>
-        ) : (
-          <p style={{ fontSize: '14px', color: '#71717a', margin: '8px 0 0' }}>
-            {t('noAchievements')}
-          </p>
-        )}
+            )
+          })}
+        </div>
 
         {row.claimStatus === 'claimed' && row.twitterHandle && (
           <div className="info-row" style={{ marginTop: '28px' }}>
