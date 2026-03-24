@@ -1,4 +1,4 @@
-# Syncs repository docs/ to the GitHub Wiki under Documentation/.
+# Syncs repository docs/**/*.md to the GitHub Wiki as flat pages (Documentation-… slugs).
 #
 # Prerequisites:
 #   1. Enable Wiki on the repo (Settings → General → Features → Wiki).
@@ -11,9 +11,9 @@
 #     PAT with repo scope as repository secret WIKI_SYNC_TOKEN.
 #
 # What gets synced:
-#   - All files under docs/ into wiki page tree Documentation/…
-#   - Excludes *.jsonl (snapshots may contain identifiable keys; see world_snapshots README)
-#   - Regenerates wiki Home.md with a full auto-generated index (all *.md under Documentation/)
+#   - Only *.md under docs/ (flat filenames Documentation-<path-with-hyphens>.md in wiki root)
+#   - Removes prior Documentation/ subtree and Documentation-*.md from the wiki clone before copy
+#   - Regenerates wiki Home.md with links to https://github.com/{repo}/wiki/{slug}
 
 name: Sync docs to Wiki
 
@@ -24,7 +24,7 @@ on:
       - master
     paths:
       - "docs/**"
-      - "scripts/generate_wiki_home.py"
+      - "scripts/sync_docs_wiki_mirror.py"
       - ".github/workflows/docs-wiki-sync.yml"
   workflow_dispatch:
 
@@ -49,9 +49,8 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Clone wiki and sync Documentation
+      - name: Clone wiki and mirror docs
         env:
-          # Prefer optional PAT; fall back to default token for same-repo wiki
           WIKI_SYNC_TOKEN: ${{ secrets.WIKI_SYNC_TOKEN }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
@@ -63,20 +62,12 @@ jobs:
           rm -rf "$WIKI_DIR"
           git clone --depth=1 "https://x-access-token:${TOKEN}@github.com/${REPO}.wiki.git" "$WIKI_DIR"
 
-          # Replace mirrored tree (keeps other wiki pages outside Documentation/ if any)
-          rm -rf "$WIKI_DIR/Documentation"
-          mkdir -p "$WIKI_DIR/Documentation"
-          rsync -a \
-            --exclude='*.jsonl' \
-            "${GITHUB_WORKSPACE}/docs/" "$WIKI_DIR/Documentation/"
-
-          # Full index on Home (encoded wiki URLs; no separate "Documentation index" page link)
-          python3 "${GITHUB_WORKSPACE}/scripts/generate_wiki_home.py" \
-            --documentation-root "$WIKI_DIR/Documentation" \
+          python3 "${GITHUB_WORKSPACE}/scripts/sync_docs_wiki_mirror.py" \
+            --docs-root "${GITHUB_WORKSPACE}/docs" \
+            --wiki-root "$WIKI_DIR" \
             --repo "$REPO" \
             --ref-name "$REF_NAME" \
-            --sha-short "${SHA:0:7}" \
-            --output "$WIKI_DIR/Home.md"
+            --sha-short "${SHA:0:7}"
 
           cd "$WIKI_DIR"
           git add -A
