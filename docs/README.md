@@ -103,3 +103,4 @@ When another doc (including `skill/references/`) needs the same fact, link here 
 - After adding a top-level guide, link it from this index.
 - Prefer **one canonical doc** per topic; others should cross-link.
 - Keep deep links in `skill/` and `world/agent_auth/README.md` pointed at the kebab-case paths above.
+- **GitHub Wiki:** On push to `main`/`master` when `docs/**` changes, [`.github/workflows/docs-wiki-sync.yml`](../.github/workflows/docs-wiki-sync.yml) mirrors this folder to the repo wiki under `Documentation/` (excludes `*.jsonl`). Enable Wiki in repo settings and create an initial wiki page first. Optional secret `WIKI_SYNC_TOKEN` if the default `GITHUB_TOKEN` cannot push to the wiki.

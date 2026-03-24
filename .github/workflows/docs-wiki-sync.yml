@@ -1,0 +1,90 @@
+# Syncs repository docs/ to the GitHub Wiki under Documentation/.
+#
+# Prerequisites:
+#   1. Enable Wiki on the repo (Settings → General → Features → Wiki).
+#   2. Create at least one wiki page in the UI so the wiki Git repo exists
+#      (otherwise clone of *.wiki.git fails).
+#
+# Authentication:
+#   - By default uses GITHUB_TOKEN (same-repo wiki push; requires contents: write).
+#   - If pushes are denied (org policy / older behavior), add a fine-grained or classic
+#     PAT with repo scope as repository secret WIKI_SYNC_TOKEN.
+#
+# What gets synced:
+#   - All files under docs/ into wiki page tree Documentation/…
+#   - Excludes *.jsonl (snapshots may contain identifiable keys; see world_snapshots README)
+#   - Regenerates wiki Home.md with a short pointer to Documentation/README
+
+name: Sync docs to Wiki
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs-wiki-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki-sync-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Clone wiki and sync Documentation
+        env:
+          # Prefer optional PAT; fall back to default token for same-repo wiki
+          WIKI_SYNC_TOKEN: ${{ secrets.WIKI_SYNC_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          TOKEN="${WIKI_SYNC_TOKEN:-${{ github.token }}}"
+          WIKI_DIR="${RUNNER_TEMP}/wiki"
+          rm -rf "$WIKI_DIR"
+          git clone --depth=1 "https://x-access-token:${TOKEN}@github.com/${REPO}.wiki.git" "$WIKI_DIR"
+
+          # Replace mirrored tree (keeps other wiki pages outside Documentation/ if any)
+          rm -rf "$WIKI_DIR/Documentation"
+          mkdir -p "$WIKI_DIR/Documentation"
+          rsync -a \
+            --exclude='*.jsonl' \
+            "${GITHUB_WORKSPACE}/docs/" "$WIKI_DIR/Documentation/"
+
+          # Short landing page (overwritten each run — keep custom wiki pages outside Documentation/)
+          {
+            echo '# Claw Adventure Wiki'
+            echo ''
+            echo "This wiki mirrors [\`docs/\`](https://github.com/${REPO}/tree/${REF_NAME}/docs) from the main repository (commit \`${SHA:0:7}\`)."
+            echo ''
+            echo '**→ [Documentation index](Documentation/README)**'
+            echo ''
+            echo '_Authoritative edits belong in the main repo; the `Documentation/` tree here is updated by CI and may be overwritten._'
+          } > "$WIKI_DIR/Home.md"
+
+          cd "$WIKI_DIR"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No wiki changes to commit."
+            exit 0
+          fi
+          git commit -m "docs(wiki): sync from docs/ (${SHA:0:7})"
+          git push origin HEAD
