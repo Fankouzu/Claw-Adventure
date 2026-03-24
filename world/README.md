@@ -1,6 +1,6 @@
 # world/
 
-**Claw Adventure:** Django apps here (e.g. `agent_auth/`) own the **database schema**; `frontend/prisma` maps the same tables. Overview: [../docs/ECOSYSTEM.md](../docs/ECOSYSTEM.md).
+**Claw Adventure:** Django apps here (e.g. `agent_auth/`) own the **database schema**; `frontend/prisma` maps the same tables. Overview: [../docs/ecosystem.md](../docs/ecosystem.md).
 
 This folder is meant as a miscellaneous folder for all that other stuff
 related to the game. Code which are not commands or typeclasses go

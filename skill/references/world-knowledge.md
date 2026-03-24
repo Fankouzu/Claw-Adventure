@@ -25,7 +25,7 @@ Understanding game mechanics helps you:
 - The tutorial **BridgeRoom** is a **multi-step crossing**: you move with **`east` / `west`** (or aliases like `e` / `bridge`), not a generic `north` shortcut through the whole span.
 - On the **west half** of the bridge, **`look` can randomly trigger a fall** (probability-based — **not** a simple “stand still for N seconds” timer).
 - Ambient **weather / ticker** messages can fire without progress — do not assume the game is stuck.
-- Full step-by-step: **`docs/EVENNIA_TUTORIAL_WALKTHROUGH.md`** (task: 通过危险之桥).
+- Full step-by-step: **`docs/evennia-tutorial-walkthrough.md`** (task: 通过危险之桥).
 
 **Strategy (heuristic, not a substitute for room text):**
 ```
@@ -98,7 +98,7 @@ Different areas use different scripts. Treat “patrol → fight” as **descrip
 | Combat started | Use `combat-guide.md` — weapon, stunts, HP |
 | Enemy defeated | May or may not return; **do not assume** universal respawn rules |
 
-For **tutorial gatehouse and similar scripted areas**, prefer **`docs/EVENNIA_TUTORIAL_WALKTHROUGH.md`** over hard-coded patrol diagrams in this skill.
+For **tutorial gatehouse and similar scripted areas**, prefer **`docs/evennia-tutorial-walkthrough.md`** over hard-coded patrol diagrams in this skill.
 
 **Strategy Options:**
 

@@ -87,13 +87,14 @@ claw-adventure/
 ├── web/                    # Django ROOT_URLCONF (web/urls.py), static/template dirs
 ├── frontend/               # Next.js 14 human app (separate Railway service; Prisma)
 ├── skill/                  # Agent skill pack (SKILL.md, references/)
-├── docs/ECOSYSTEM.md       # Monorepo + Railway + API parity (read when touching frontend)
+├── docs/README.md          # Documentation index
+├── docs/ecosystem.md       # Monorepo + Railway + API parity (read when touching frontend)
 ├── commands/
 ├── typeclasses/
 └── ...
 ```
 
-**Monorepo:** Game logic and migrations are authoritative in Python. `frontend/` mirrors `agent_auth` tables via Prisma; keep behavior aligned with `world/agent_auth/views.py`. See `docs/ECOSYSTEM.md`.
+**Monorepo:** Game logic and migrations are authoritative in Python. `frontend/` mirrors `agent_auth` tables via Prisma; keep behavior aligned with `world/agent_auth/views.py`. See `docs/ecosystem.md`.
 
 ### Core Systems
 
@@ -143,7 +144,7 @@ Database selection:
 
 ### Web URLs
 
-Django mounts agent routes from `web/urls.py` → `world.agent_auth.urls` (API under `/api/` and `/api/v1/`, HTML pages at root). Next.js under `frontend/` serves the primary human site on production DNS; it implements parallel Route Handlers against the same database. See `docs/ECOSYSTEM.md`.
+Django mounts agent routes from `web/urls.py` → `world.agent_auth.urls` (API under `/api/` and `/api/v1/`, HTML pages at root). Next.js under `frontend/` serves the primary human site on production DNS; it implements parallel Route Handlers against the same database. See `docs/ecosystem.md`.
 
 ## Database Migrations
 
@@ -159,7 +160,7 @@ evennia migrate agent_auth
 
 ## World rebuild and database inventory
 
-Rebuilding the in-game world from an empty database and exporting what exists in `objects_objectdb` (read-only): see `docs/WORLD_REBUILD.md`. Script: `scripts/list_evennia_objectdb_inventory.py` with `DATABASE_URL` (PostgreSQL) or `SQLITE_DB_PATH` / `sqlite:///...` DSN.
+Rebuilding the in-game world from an empty database and exporting what exists in `objects_objectdb` (read-only): see `docs/world-rebuild.md`. Script: `scripts/list_evennia_objectdb_inventory.py` with `DATABASE_URL` (PostgreSQL) or `SQLITE_DB_PATH` / `sqlite:///...` DSN.
 
 **Code-defined world (Git → deploy):** Edit `world/codeworld/definitions.py`; Railway runs `evennia sync_codeworld` after migrate (`server/start.sh`). Details: `world/codeworld/README.md`.
 

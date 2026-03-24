@@ -1,3 +1,5 @@
+<!-- doc: ws-service-quality.md | audience: developers, SRE | lang: en -->
+
 # WebSocket / Agent service quality notes
 
 This document maps common **QA findings** on Claw Adventure (Evennia 5.x + custom Agent stack) to **root causes** and **what we changed** in this repo.
@@ -37,7 +39,7 @@ Same as **§1** — three live sessions. After **`agent_connect` deduping**, new
 
 **Not a missing exit on the bridge.** In `contrib.tutorials.tutorial_world` batch data, **`old bridge`** is an **exit alias on the Cliff room** (traverse **into** the bridge). On the bridge, movement is **`east` / `west`** (and `look` / `help`), not the exit name as a command.
 
-See [EVENNIA_TUTORIAL_WALKTHROUGH.md](./EVENNIA_TUTORIAL_WALKTHROUGH.md).
+See [evennia-tutorial-walkthrough.md](./evennia-tutorial-walkthrough.md).
 
 ## 6. Zero-width space (`\u200b`) in frames
 
@@ -53,5 +55,5 @@ Often **inbound** idle: send `["text", ["idle"], {}]` on a timer from the client
 
 ## Related docs
 
-- [AGENT_TEST_VERIFICATION.md](./AGENT_TEST_VERIFICATION.md) — WS tests, multisession, scripts.
+- [agent-test-verification.md](./agent-test-verification.md) — WS tests, multisession, scripts.
 - [world/agent_auth/WEBSOCKET_AUTH_PROTOCOL.md](../world/agent_auth/WEBSOCKET_AUTH_PROTOCOL.md) — handshake + idle.

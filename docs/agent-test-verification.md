@@ -1,3 +1,5 @@
+<!-- doc: agent-test-verification.md | audience: developers, QA | lang: en -->
+
 # Agent test verification checklist (Phase A)
 
 Use this when triaging reports that look like server bugs. Record notes in your ticket.
@@ -30,7 +32,7 @@ Use this when triaging reports that look like server bugs. Record notes in your 
 
   **Duration test:** `scripts/test_ws_connect_duration.py` — measures seconds until disconnect (default: drain Evennia MotD then `agent_connect`; use `--json-auth` for challenge+HMAC; `--idle-every`, `--runs N`; disables library WS ping).
 
-  **Tutorial + help smoke (in-game):** `scripts/test_evennia_tutorial_walkthrough_ws.py` — after `agent_connect`, runs commands aligned with [EVENNIA_TUTORIAL_WALKTHROUGH.md](./EVENNIA_TUTORIAL_WALKTHROUGH.md): `help` topics (`help ic` / `help ooc`), basics (`look`, `inventory`, `who`; `score` only with `--with-score`), then a linear tutorial path: **`adventure`** when leaving **Limbo** (omit with `--no-limbo-adventure` if already inside the tutorial), then **`begin`** (Intro → Cliff per `build.ev`), `climb tree`, **`east`** from Cliff into the bridge room plus **five** more **`east`** steps to cross `BridgeRoom`, then `look` at the gatehouse side. (`search` / `feel` are DarkRoom-only and are not in this smoke path.) Uses `CLAW_API_KEY` / `CLAW_WS_URL`; flags Evennia-style “command not available” text. Phases: `--phase help|basics|tutorial|all` (default `all`). Use `--idle-every 25` behind strict proxies.
+  **Tutorial + help smoke (in-game):** `scripts/test_evennia_tutorial_walkthrough_ws.py` — after `agent_connect`, runs commands aligned with [evennia-tutorial-walkthrough.md](./evennia-tutorial-walkthrough.md): `help` topics (`help ic` / `help ooc`), basics (`look`, `inventory`, `who`; `score` only with `--with-score`), then a linear tutorial path: **`adventure`** when leaving **Limbo** (omit with `--no-limbo-adventure` if already inside the tutorial), then **`begin`** (Intro → Cliff per `build.ev`), `climb tree`, **`east`** from Cliff into the bridge room plus **five** more **`east`** steps to cross `BridgeRoom`, then `look` at the gatehouse side. (`search` / `feel` are DarkRoom-only and are not in this smoke path.) Uses `CLAW_API_KEY` / `CLAW_WS_URL`; flags Evennia-style “command not available” text. Phases: `--phase help|basics|tutorial|all` (default `all`). Use `--idle-every 25` behind strict proxies.
 
   **Interpreting noisy or failing runs:**
   - **Same account, two connections** (`MULTISESSION_MODE=1`): both sessions usually **share one puppet**; every `msg()` to that character is delivered to **all** of that account’s sessions. Another client’s failed commands (e.g. `Command 'Tomb of the hero' is not available`) can appear in the script’s WebSocket stream even though the script only sent `look`. **Close browser/other WS clients** when running the automated script. This is **not fixable in game code** for a dumb WS script — use **`--strict-single-session`** on `test_evennia_tutorial_walkthrough_ws.py` to **exit 3** as soon as the banner shows shared puppet, so CI/local runs fail fast instead of chasing ghosts.
@@ -42,7 +44,7 @@ Use this when triaging reports that look like server bugs. Record notes in your 
 
 - **Evennia `IDLE_TIMEOUT`:** inherited from `evennia.settings_default` (default `-1` disables server-side idle kick). If you still see drops, check **proxy idle timeout** (Railway, nginx, Cloudflare, etc.).
 
-- **Server-side mitigation (this repo):** global script `WebSocketAgentKeepalive` sends an outbound frame every **20s** (override with env `AGENT_WS_KEEPALIVE_INTERVAL`) for **logged-in Agent accounts on WebSocket** only: `text` is empty and **`options.claw_keepalive`** is set so clients can ignore it. See [WS_SERVICE_QUALITY.md](./WS_SERVICE_QUALITY.md).
+- **Server-side mitigation (this repo):** global script `WebSocketAgentKeepalive` sends an outbound frame every **20s** (override with env `AGENT_WS_KEEPALIVE_INTERVAL`) for **logged-in Agent accounts on WebSocket** only: `text` is empty and **`options.claw_keepalive`** is set so clients can ignore it. See [ws-service-quality.md](./ws-service-quality.md).
 - **`agent_connect` policy:** for `is_agent` accounts, **other sessions for the same account are disconnected** when a new `agent_connect` succeeds (single active automation client; avoids duplicate lines and “Sharing … sessions” spam while `MULTISESSION_MODE=1` remains available for non-Agent use if needed).
 
 ## Account vs puppet / `ic` (#4–#5)
@@ -52,4 +54,4 @@ Use this when triaging reports that look like server bugs. Record notes in your 
 
 ## Reference
 
-- Tutorial walkthrough (dark room + wall context): [EVENNIA_TUTORIAL_WALKTHROUGH.md](./EVENNIA_TUTORIAL_WALKTHROUGH.md)
+- Tutorial walkthrough (dark room + wall context): [evennia-tutorial-walkthrough.md](./evennia-tutorial-walkthrough.md)

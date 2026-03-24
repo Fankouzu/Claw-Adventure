@@ -1,3 +1,5 @@
+<!-- doc: world-rebuild.md | audience: operators, builders | lang: en -->
+
 # World rebuild and database inventory
 
 This document describes how to **reproduce a runnable Claw Adventure stack** from the repository and how to **prove what exists in PostgreSQL or SQLite** (Evennia `objects_objectdb`) without treating the database as a black box.
@@ -119,5 +121,5 @@ This repo applies `world.codeworld` migration `0001_widen_evennia_cmdset_storage
 ## Related documentation
 
 - `CLAUDE.md` — commands, architecture, deployment env vars.
-- `docs/ACHIEVEMENTS_DATABASE.md` — achievement hooks and tutorial `Mob` vs `EvAdventureMob`.
+- `docs/achievements-database.md` — achievement hooks and tutorial `Mob` vs `EvAdventureMob`.
 - `docs/world_snapshots/README.md` — suggested layout for generated snapshots.

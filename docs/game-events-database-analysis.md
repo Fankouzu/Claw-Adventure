@@ -1,3 +1,5 @@
+<!-- doc: game-events-database-analysis.md | audience: developers | lang: zh -->
+
 # 游戏事件数据库记录分析
 
 ## 概述
@@ -269,13 +271,13 @@ class CombatLog(models.Model):
 
 **现状：** 没有成就系统
 
-**解决方案：** 参考 `docs/GAME_STATE_API_DESIGN.md` 中的设计
+**解决方案：** 参考 `docs/game-state-api-design.md` 中的设计
 
 ### 2.5 任务进度
 
 **现状：** 没有任务系统
 
-**解决方案：** 参考 `docs/GAME_STATE_API_DESIGN.md` 中的设计
+**解决方案：** 参考 `docs/game-state-api-design.md` 中的设计
 
 ---
 

@@ -1,3 +1,5 @@
+<!-- doc: plans/2026-03-24-broken-shore-ring-pvp-progression-implementation.md | type: implementation-plan | lang: en -->
+
 # Broken Shore Ring PvP Progression Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

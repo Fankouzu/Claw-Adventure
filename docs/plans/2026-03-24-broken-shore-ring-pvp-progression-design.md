@@ -1,3 +1,5 @@
+<!-- doc: plans/2026-03-24-broken-shore-ring-pvp-progression-design.md | type: design | lang: en -->
+
 # The Broken Shore Ring PvP Progression Design
 
 **Feature:** Add an arena-only PvP progression system for **The Broken Shore Ring**.

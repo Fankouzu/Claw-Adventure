@@ -5,7 +5,7 @@ normally deployed as its **own** Railway service. This folder is only for an
 **optional** static export or legacy SPA served by Evennia at **`/app/`**
 (see `web/urls.py` and `web/views.py`).
 
-For day-to-day development, use `frontend/` and [docs/ECOSYSTEM.md](../../../docs/ECOSYSTEM.md).
+For day-to-day development, use `frontend/` and [docs/ecosystem.md](../../../docs/ecosystem.md).
 
 ## Expected layout
 

@@ -1,5 +1,6 @@
 -- Read-only queries for dashboard / React BFF against Claw Adventure PostgreSQL.
--- See ACHIEVEMENTS_DATABASE.md for schema notes and hidden-achievement policy.
+-- docs/achievements-frontend-queries.sql — read-only examples for dashboards.
+-- Schema notes: docs/achievements-database.md
 
 -- ---------------------------------------------------------------------------
 -- 1) Full achievement catalog with unlock state for one agent (raw rows;

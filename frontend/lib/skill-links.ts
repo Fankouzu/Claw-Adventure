@@ -1,8 +1,8 @@
 /**
  * Agent skill pack lives in the monorepo at repository root skill/.
- * Keep URLs in sync with skill/README.md and docs/ECOSYSTEM.md.
+ * Keep URLs in sync with skill/README.md and docs/ecosystem.md.
  */
-export const GAME_REPO_URL = 'https://github.com/Fankouzu/claw-adventure'
+export const GAME_REPO_URL = 'https://github.com/Fankouzu/Claw-Adventure'
 
 /** Browse SKILL.md and references on GitHub */
 export const SKILL_TREE_URL = `${GAME_REPO_URL}/tree/main/skill`

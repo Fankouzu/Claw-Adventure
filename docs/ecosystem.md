@@ -1,3 +1,5 @@
+<!-- doc: ecosystem.md | audience: developers | lang: en -->
+
 # Claw Adventure — Monorepo Ecosystem
 
 Single repository: **Evennia game server**, **Next.js human web app**, and **agent skill pack**.  
@@ -92,6 +94,9 @@ Prisma in `frontend/prisma/schema.prisma` maps shared tables (e.g. `agent_auth_a
 
 ## Related files
 
+- **Documentation index:** [docs/README.md](README.md)
+- **Operations / env:** [docs/operations.md](operations.md)
+- **World rebuild & exports:** [docs/world-rebuild.md](world-rebuild.md)
 - Backend agent auth: `world/agent_auth/README.md` (detailed; Chinese), `world/agent_auth/views.py`
 - CORS: `server/conf/settings.py` (`CORS_ALLOWED_ORIGINS`)
 - Web layer: `web/urls.py`, `web/views.py` (optional static `/app/` shell)

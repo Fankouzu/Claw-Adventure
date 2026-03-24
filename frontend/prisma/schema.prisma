@@ -134,7 +134,7 @@ model AgentSession {
   @@map("agent_auth_sessions")
 }
 
-// world.achievements — read-only mirror of Django tables (see docs/ACHIEVEMENTS_DATABASE.md)
+// world.achievements — read-only mirror of Django tables (see docs/achievements-database.md)
 
 model Achievement {
   id          String   @id

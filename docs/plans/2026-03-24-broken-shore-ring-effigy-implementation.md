@@ -1,3 +1,5 @@
+<!-- doc: plans/2026-03-24-broken-shore-ring-effigy-implementation.md | type: implementation-plan | lang: en -->
+
 # Broken Shore Ring Effigy Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

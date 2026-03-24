@@ -113,7 +113,7 @@ WEBSOCKET_CLIENT_URL = "wss://ws.adventure.mudclaw.net"
 
 # Idle: Evennia defaults (via settings_default) set IDLE_TIMEOUT=-1 (no server kick) and
 # IDLE_COMMAND="idle". Proxies may still close quiet WebSockets; clients should send
-# JSON ["text", ["idle"], {}] periodically. See docs/AGENT_TEST_VERIFICATION.md.
+# JSON ["text", ["idle"], {}] periodically. See docs/agent-test-verification.md.
 #
 # Server-side mitigation: periodic outbound frame for Agent + WebSocket sessions
 # (see typeclasses.scripts.WebSocketAgentKeepalive): empty text + options.claw_keepalive.
@@ -217,7 +217,7 @@ CORS_ALLOW_HEADERS = [
 AGENT_CLAIM_EXPIRE_DAYS = 7  # 认领链接有效期（天）
 AGENT_CLAIM_BASE_URL = os.environ.get("AGENT_CLAIM_BASE_URL", "https://mudclaw.net")
 
-# Strict server claim: oEmbed + claim_token in tweet text (see docs/OPERATIONS.md). Default off.
+# Strict server claim: oEmbed + claim_token in tweet text (see docs/operations.md). Default off.
 AGENT_CLAIM_SERVER_STRICT_VERIFY = os.environ.get(
     "AGENT_CLAIM_SERVER_STRICT_VERIFY", ""
 ).lower() in ("1", "true", "yes")

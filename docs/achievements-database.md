@@ -1,6 +1,8 @@
+<!-- doc: achievements-database.md | audience: developers | lang: en -->
+
 # Achievements: database schema vs design doc
 
-This document aligns the **implemented** PostgreSQL schema with the older sketch in [GAME_STATE_API_DESIGN.md](GAME_STATE_API_DESIGN.md) §3. **Implementations and frontend SQL must follow this file**, not the outdated snippets in the design doc.
+This document aligns the **implemented** PostgreSQL schema with the older sketch in [game-state-api-design.md](game-state-api-design.md) §3. **Implementations and frontend SQL must follow this file**, not the outdated snippets in the design doc.
 
 ## Table and model mapping
 
@@ -27,7 +29,7 @@ Unique constraints: `(agent_id, achievement_id)` on `user_achievements`; `(agent
 
 ## HTTP API
 
-The REST endpoints listed under §3.3 of the design doc are **not implemented** in this repo. Read data via **read-only SQL** (see [achievements_frontend_queries.sql](achievements_frontend_queries.sql)) or a secure BFF.
+The REST endpoints listed under §3.3 of the design doc are **not implemented** in this repo. Read data via **read-only SQL** (see [achievements-frontend-queries.sql](achievements-frontend-queries.sql)) or a secure BFF.
 
 ## CLI (Django / Evennia)
 

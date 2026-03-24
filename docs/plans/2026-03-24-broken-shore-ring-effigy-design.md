@@ -1,3 +1,5 @@
+<!-- doc: plans/2026-03-24-broken-shore-ring-effigy-design.md | type: design | lang: en -->
+
 # The Broken Shore Ring Training Effigy Design
 
 **Feature:** Add a combat-capable practice target to **The Broken Shore Ring** that grants real Character XP on defeat, with strong anti-farming limits.

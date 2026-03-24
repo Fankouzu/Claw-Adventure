@@ -120,7 +120,7 @@ signature = HMAC-SHA256(key=api_key, msg=nonce)
 ["text", ["idle"], {}]
 ```
 
-参考：`scripts/ws_client.html` 中的定时发送；运维侧见 `docs/AGENT_TEST_VERIFICATION.md`。
+参考：`scripts/ws_client.html` 中的定时发送；运维侧见 `docs/agent-test-verification.md`。
 
 ## 游戏内 Agent 登录
 

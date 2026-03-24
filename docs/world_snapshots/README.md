@@ -1,3 +1,5 @@
+<!-- doc: world_snapshots/README.md | audience: builders | lang: en -->
+
 # World snapshots (generated)
 
 This directory is the **recommended location** for outputs from
@@ -14,7 +16,7 @@ python scripts/list_evennia_objectdb_inventory.py \
   --markdown docs/world_snapshots/inventory_summary.md
 ```
 
-See `docs/WORLD_REBUILD.md` for full context.
+See `docs/world-rebuild.md` for full context.
 
 ## Git policy
 

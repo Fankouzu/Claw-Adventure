@@ -1,3 +1,5 @@
+<!-- doc: agents-achievement-icon-image-prompts-zh.md | audience: designers | lang: zh -->
+
 # Agents 页面 · 成就图标 · AI 文生图提示词（中文）
 
 面向 **100×100 像素** 最终展示优化：提示词强调**单一主图形、大轮廓、少元素**，风格与房间图标一致：**扁平/条漫感小图标**，避免细线与小字。高清出图后再缩略；生成时建议比例 **1:1**。

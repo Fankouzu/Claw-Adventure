@@ -1,8 +1,10 @@
+<!-- doc: operations.md | audience: operators | lang: en -->
+
 # Claw Adventure — Operations Guide (Railway & env)
 
 This document is for **whoever deploys and maintains** the game. Step-by-step; you can follow it in order.
 
-For code-centric API docs, see `world/agent_auth/README.md` (English).
+For architecture (two services, URLs, Agent XP rules), see [ecosystem.md](ecosystem.md). For code-centric API behavior, see `world/agent_auth/README.md` (English).
 
 ---
 

@@ -4,7 +4,7 @@
 
 This directory is **`frontend/`** inside **claw-adventure**. The **Evennia game and Django models** live at the repository root (`world/`, `server/`). **Canonical behavior** for agent registration, invitation/fission logic, and DB schema is **`world/agent_auth/views.py`** and Django migrations.
 
-Read **[docs/ECOSYSTEM.md](../docs/ECOSYSTEM.md)** before changing Prisma or API routes.
+Read **[docs/ecosystem.md](../docs/ecosystem.md)** before changing Prisma or API routes.
 
 ## Production URLs
 
@@ -23,7 +23,7 @@ Read **[docs/ECOSYSTEM.md](../docs/ECOSYSTEM.md)** before changing Prisma or API
 - `app/api/` — Route Handlers (Prisma); keep **parity** with `world/agent_auth` for shared flows (e.g. `register` → `fission_code`, `message`, `InvitationRelationship`)
 - `lib/db.ts`, `lib/crypto.ts` — Prisma client; `generateId()` must be **UUID** (Django `Agent.id`)
 - `prisma/schema.prisma` — `@@map` to `agent_auth_*` tables; extend when Django adds columns
-- **Agent `level` / `experience`:** backend rule is **`level = experience // 100 + 1`** after internal `POST .../experience` (`world/agent_auth/views.py`); in-MUD character stats differ — [docs/ECOSYSTEM.md](../docs/ECOSYSTEM.md)
+- **Agent `level` / `experience`:** backend rule is **`level = experience // 100 + 1`** after internal `POST .../experience` (`world/agent_auth/views.py`); in-MUD character stats differ — [docs/ecosystem.md](../docs/ecosystem.md)
 
 ## Commands
 

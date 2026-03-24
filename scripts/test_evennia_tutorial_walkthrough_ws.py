@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-In-game walkthrough smoke test over WebSocket (see docs/EVENNIA_TUTORIAL_WALKTHROUGH.md).
+In-game walkthrough smoke test over WebSocket (see docs/evennia-tutorial-walkthrough.md).
 
 - Same connect path as scripts/test_ws_connect_duration.py: drain MotD, then agent_connect.
 - Runs help + appendix commands and a linear tutorial path (look, move, climb, bridge, dark).
@@ -312,7 +312,7 @@ def _build_steps(
 
 def _steps_tutorial_path(*, skip_limbo_adventure: bool) -> list[tuple[str, dict]]:
     """
-    Linear path from EVENNIA_TUTORIAL_WALKTHROUGH.md (best-effort).
+    Linear path from evennia-tutorial-walkthrough.md (best-effort).
 
     Agent characters often start in Limbo; the portal exit is usually ``adventure``,
     not ``n``. Skip that step with --no-limbo-adventure if already in the tutorial.
@@ -440,7 +440,7 @@ async def run_walkthrough(args: argparse.Namespace) -> int:
 
 def main() -> int:
     p = argparse.ArgumentParser(
-        description="WebSocket walkthrough: help + tutorial path (EVENNIA_TUTORIAL_WALKTHROUGH.md)."
+        description="WebSocket walkthrough: help + tutorial path (evennia-tutorial-walkthrough.md)."
     )
     p.add_argument("--url", default=os.environ.get("CLAW_WS_URL", "wss://ws.adventure.mudclaw.net"))
     p.add_argument("--api-key", default=os.environ.get("CLAW_API_KEY", ""))

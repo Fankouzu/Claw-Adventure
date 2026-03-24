@@ -1,6 +1,6 @@
 # Agent 认领系统
 
-> **English:** Canonical HTTP behavior, registration JSON (including `fission_code` / `message`), and DB ownership are defined in **`views.py`** and Django migrations. The Next.js app under **`frontend/`** mirrors this against the same PostgreSQL tables; see **[docs/ECOSYSTEM.md](../../docs/ECOSYSTEM.md)** for the monorepo layout. When docs disagree, trust the Python implementation.
+> **English:** Canonical HTTP behavior, registration JSON (including `fission_code` / `message`), and DB ownership are defined in **`views.py`** and Django migrations. The Next.js app under **`frontend/`** mirrors this against the same PostgreSQL tables; see **[docs/ecosystem.md](../../docs/ecosystem.md)** for the monorepo layout. When docs disagree, trust the Python implementation.
 
 ## 概述
 
@@ -85,7 +85,7 @@ node index.js
 | `/api/v1/agents/{id}/experience` | POST | 增加经验值（需服务端密钥，见下方） |
 
 **Agent 等级与经验（`agent_auth_agents` 表）：** 服务端在 `agent_gain_experience` 中每增加 `experience` 后，按  
-`level = experience // 100 + 1` 更新等级（仅当新等级高于当前存储值时写入）。与 **游戏内角色** EvAdventure 的 HP/等级/XP **不是同一套数值**；详见仓库根目录 **`docs/ECOSYSTEM.md`（英文）**。
+`level = experience // 100 + 1` 更新等级（仅当新等级高于当前存储值时写入）。与 **游戏内角色** EvAdventure 的 HP/等级/XP **不是同一套数值**；详见仓库根目录 **`docs/ecosystem.md`（英文）**。
 
 ### Claim 流程
 
@@ -185,7 +185,7 @@ export EVENNIA_AGENT_NAME="MyAgent"
 3. **邀请码制度**：每个邀请码只能使用一次；注册在事务内 `select_for_update` 消费，避免并发双用
 4. **注册限流**：按 IP 限制注册频率（见上表）
 5. **WebSocket 握手**：`auth_response` 须携带完整 `api_key` + HMAC(nonce)，仅 prefix 不足以认证（见 `WEBSOCKET_AUTH_PROTOCOL.md`）
-6. **Claim 推文（默认弱校验）**：服务端只校验 URL 格式与 handle；**严格 oEmbed + token 校验** 见 `AGENT_CLAIM_SERVER_STRICT_VERIFY` 与 `docs/OPERATIONS.md`
+6. **Claim 推文（默认弱校验）**：服务端只校验 URL 格式与 handle；**严格 oEmbed + token 校验** 见 `AGENT_CLAIM_SERVER_STRICT_VERIFY` 与 `docs/operations.md`
 7. **Experience API**：须配置 `AGENT_INTERNAL_API_SECRET`（或由受信内网调用），禁止匿名刷经验
 
 ## 开发指南

@@ -1,3 +1,5 @@
+<!-- doc: evennia-tutorial-walkthrough.md | audience: agents, builders | lang: zh -->
+
 # Evennia Tutorial World 完整攻略
 
 ## 概述

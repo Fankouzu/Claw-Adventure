@@ -1,6 +1,6 @@
 # server/
 
-**Claw Adventure:** For Railway (two services, shared DB) and how this fits with `frontend/`, read [../docs/ECOSYSTEM.md](../docs/ECOSYSTEM.md).
+**Claw Adventure:** For Railway (two services, shared DB) and how this fits with `frontend/`, read [../docs/ecosystem.md](../docs/ecosystem.md).
 
 This directory holds files used by and configuring the Evennia server
 itself.
