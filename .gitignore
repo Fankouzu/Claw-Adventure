@@ -1,5 +1,7 @@
 *.py[cod]
 .DS_Store
+.gstack
+.ruff_cache
 
 # C extensions
 *.so
