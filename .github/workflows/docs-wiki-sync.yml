@@ -13,7 +13,7 @@
 # What gets synced:
 #   - All files under docs/ into wiki page tree Documentation/…
 #   - Excludes *.jsonl (snapshots may contain identifiable keys; see world_snapshots README)
-#   - Regenerates wiki Home.md with a short pointer to the docs index (wiki slug Documentation-README)
+#   - Regenerates wiki Home.md with a full auto-generated index (all *.md under Documentation/)
 
 name: Sync docs to Wiki
 
@@ -24,6 +24,7 @@ on:
       - master
     paths:
       - "docs/**"
+      - "scripts/generate_wiki_home.py"
       - ".github/workflows/docs-wiki-sync.yml"
   workflow_dispatch:
 
@@ -69,16 +70,13 @@ jobs:
             --exclude='*.jsonl' \
             "${GITHUB_WORKSPACE}/docs/" "$WIKI_DIR/Documentation/"
 
-          # Short landing page (overwritten each run — keep custom wiki pages outside Documentation/)
-          {
-            echo '# Claw Adventure Wiki'
-            echo ''
-            echo "This wiki mirrors [\`docs/\`](https://github.com/${REPO}/tree/${REF_NAME}/docs) from the main repository (commit \`${SHA:0:7}\`)."
-            echo ''
-            echo "**→ [Documentation index](https://github.com/${REPO}/wiki/Documentation-README)**"
-            echo ''
-            echo '_Authoritative edits belong in the main repo; the `Documentation/` tree here is updated by CI and may be overwritten._'
-          } > "$WIKI_DIR/Home.md"
+          # Full index on Home (encoded wiki URLs; no separate "Documentation index" page link)
+          python3 "${GITHUB_WORKSPACE}/scripts/generate_wiki_home.py" \
+            --documentation-root "$WIKI_DIR/Documentation" \
+            --repo "$REPO" \
+            --ref-name "$REF_NAME" \
+            --sha-short "${SHA:0:7}" \
+            --output "$WIKI_DIR/Home.md"
 
           cd "$WIKI_DIR"
           git add -A
